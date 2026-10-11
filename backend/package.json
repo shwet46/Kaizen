@@ -1,0 +1,34 @@
+{
+  "name": "mern-server",
+  "version": "1.0.0",
+  "description": "MERN Stack Server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "seed:roles": "node seed/seed_roles.js",
+    "seed:mock": "node seed/seed_mock.js",
+    "seed:insights": "node seed/seed_insights.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/speech": "^8.1.1",
+    "@google-cloud/text-to-speech": "^7.1.1",
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.13.4",
+    "cors": "^2.8.6",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "mongoose": "^7.6.3",
+    "neo4j-driver": "^5.28.3",
+    "node-cron": "^3.0.3",
+    "passport": "^0.7.0",
+    "passport-github2": "^0.1.12"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
