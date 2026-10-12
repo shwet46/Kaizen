@@ -4,11 +4,11 @@
  * 
  * Account ID to test: 712020:f4133ad3-9b22-491e-8260-37d3ce9dcf04
  * 
- * Run: node test/test_jira_comprehensive.js
+ * Run: node test_jira_comprehensive.js
  */
 
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const axios = require('axios');
 const mongoose = require('mongoose');
@@ -379,7 +379,7 @@ async function testTwoWaySync(projectKey) {
 
     try {
         // Test the sync endpoint by making a direct call to jiraIngestion
-        const { ingestIssues } = require('../services/jiraIngestion');
+        const { ingestIssues } = require('./services/jiraIngestion');
 
         log(`Running ingestIssues for project: ${projectKey}...`, 'info');
         const result = await ingestIssues(projectKey);
@@ -517,3 +517,4 @@ runAllTests().catch(err => {
     // Ensure MongoDB disconnects even on errors
     mongoose.disconnect().catch(() => { });
 });
+

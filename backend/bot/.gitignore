@@ -11,3 +11,4 @@ ENV/
 *.mp3
 test_output.*
 .DS_Store
+.venv/

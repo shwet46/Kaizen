@@ -3,7 +3,7 @@
  * Generates synthetic users, teams, projects, issues, and commits
  * for hackathon demo purposes
  * 
- * Run with: node seed/seed_mock.js
+ * Run with: node seed_mock.js
  */
 
 require('dotenv').config();
@@ -13,12 +13,12 @@ const mongoose = require('mongoose');
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/mern-app';
 
 // Models
-const User = require('../models/User');
-const Team = require('../models/Team');
-const Project = require('../models/Project');
-const Issue = require('../models/Issue');
-const Commit = require('../models/Commit');
-const Sprint = require('../models/Sprint');
+const User = require('./models/User');
+const Team = require('./models/Team');
+const Project = require('./models/Project');
+const Issue = require('./models/Issue');
+const Commit = require('./models/Commit');
+const Sprint = require('./models/Sprint');
 
 // Configuration - Simplified for readable graph visualization
 const MOCK_CONFIG = {

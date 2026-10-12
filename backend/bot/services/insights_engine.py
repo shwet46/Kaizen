@@ -177,8 +177,7 @@ class InsightsEngine:
                 legacy_genai.configure(api_key=self.api_key)
                 
                 # Try modern model names
-                model_name = 'gemini-1.5-flash'
-                for m in ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro']:
+                for m in ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']:
                     try:
                         test_model = legacy_genai.GenerativeModel(model_name=m, system_instruction=self.system_prompt)
                         self.client = test_model
@@ -320,10 +319,23 @@ Format your responses using clear markdown:
                 context['individual_contribution'] = self.mongodb.get_individual_contribution(name)
                 break
 
-        # Team metrics
+        # Team metrics & live status
         context['team_performance'] = self.mongodb.get_team_performance()
         context['project_health'] = self.mongodb.get_project_health()
         context['blockers'] = self.mongodb.get_blockers()
+        # Include roster overview so Gemini has full context on tickets and assignments
+        context['team_roster_summary'] = {
+            k: {
+                'name': v['name'],
+                'role': v['role'],
+                'active_ticket': v['active_ticket'],
+                'completed_tickets': v['completed_count'],
+                'total_tickets': v['total_tickets'],
+                'commits': v['commits'],
+                'skills': v['skills']
+            }
+            for k, v in TEAM_DATA.items()
+        }
 
         return context
 
@@ -350,11 +362,11 @@ Format your responses using clear markdown:
             if getattr(self, 'sdk_type', '') == 'genai':
                 from google.genai import types
                 response = self.client.models.generate_content(
-                    model='gemini-1.5-flash',
+                    model='gemini-3.8-flash',
                     contents=context_str,
                     config=types.GenerateContentConfig(
                         system_instruction=self.system_prompt,
-                        max_output_tokens=350,
+                        max_output_tokens=1500,
                         temperature=0.7
                     )
                 )
@@ -362,7 +374,7 @@ Format your responses using clear markdown:
             elif getattr(self, 'sdk_type', '') == 'legacy':
                 response = self.client.generate_content(
                     context_str,
-                    generation_config={"max_output_tokens": 350, "temperature": 0.7}
+                    generation_config={"max_output_tokens": 1500, "temperature": 0.7}
                 )
                 return response.text.strip()
             else:

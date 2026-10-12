@@ -67,6 +67,8 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [feedbackState, setFeedbackState] = useState<Record<string, 'up' | 'down'>>({});
     const [sttNotice, setSttNotice] = useState<string | null>(null);
+    const [dynamicSuggestions, setDynamicSuggestions] = useState<Array<{ label: string; query: string; bg: string; text: string; border: string }>>([]);
+    const [greetingLoading, setGreetingLoading] = useState(false);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const audioRef = useRef<HTMLAudioElement>(null);
@@ -96,14 +98,23 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isProcessing]);
 
-    // Initial greeting matching Kaizen Landing Page theme
+    // Initial greeting — fetched dynamically from the bot backend
     useEffect(() => {
-        if (isOpen && messages.length === 0) {
-            addMessage(
-                'assistant',
-                "### 👋 Welcome to **Kaizen Intelligence**\n\nI am your live AI business delivery and engineering analytics copilot.\n\nI monitor and analyze our live delivery pipeline in real-time:\n\n• **Sprint Velocity** — 26 of 34 deliverables completed (76.5% velocity)\n• **Active Engineers** — Shweta *(AWS Arch)*, Maitri *(Backend)*, Ojasvi *(DevOps)*, Samarth *(Cloud DB)*\n• **Jira & GitHub** — Active tickets (`KAN-103`, `KAN-105`), 184 commits, and zero critical blockers\n• **AWS Architecture** — Multi-Tier VPC, EKS Kubernetes, Aurora Postgres & Redis\n\n💡 *Type your question below or click the microphone to dictate with Speech-to-Text.*"
-            );
-        }
+        if (!isOpen || messages.length > 0) return;
+
+        setGreetingLoading(true);
+        axios.get(`${API_URL}/api/context/greeting`)
+            .then(res => {
+                addMessage('assistant', res.data.greeting);
+            })
+            .catch(() => {
+                // Fallback if backend is unreachable
+                addMessage(
+                    'assistant',
+                    '### 👋 Welcome to **Kaizen Intelligence**\n\nI am your live AI business delivery and engineering analytics copilot.\n\n💡 *Type your question below or click the microphone to get started.*'
+                );
+            })
+            .finally(() => setGreetingLoading(false));
     }, [isOpen, messages.length, addMessage]);
 
     // Focus input on open
@@ -531,18 +542,21 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
         return elements;
     };
 
-    // Quick suggestions tailored to live delivery analytics
-    const suggestions = [
-        { label: "Team Velocity", query: "How is the team performing?", bg: "bg-[#E8F0FE]", text: "text-[#1A73E8]", border: "border-[#4285F4]/30" },
-        { label: "Shweta's Status", query: "What is Shweta working on?", bg: "bg-[#F0E9FF]", text: "text-[#7E57C2]", border: "border-[#7E57C2]/30" },
-        { label: "Maitri's Tasks", query: "What is Maitri working on?", bg: "bg-[#E6F4EA]", text: "text-[#137333]", border: "border-[#34A853]/30" },
-        { label: "Ojasvi (CI/CD)", query: "What did Ojasvi do?", bg: "bg-[#FEF7E0]", text: "text-[#B06000]", border: "border-[#FBBC05]/40" },
-        { label: "Samarth (DB)", query: "What is Samarth assigned to?", bg: "bg-[#FCE8E6]", text: "text-[#C5221F]", border: "border-[#EA4335]/30" },
-        { label: "Jira KAN-108", query: "Tell me about KAN-108", bg: "bg-[#E8F0FE]", text: "text-[#1A73E8]", border: "border-[#4285F4]/30" },
-        { label: "Project Health", query: "Is the project on track?", bg: "bg-[#E6F4EA]", text: "text-[#137333]", border: "border-[#34A853]/30" },
-        { label: "Blockers & Risks", query: "Are there any blockers?", bg: "bg-[#FCE8E6]", text: "text-[#C5221F]", border: "border-[#EA4335]/30" },
-        { label: "Tech Stack & AWS", query: "What is our tech stack?", bg: "bg-[#F0E9FF]", text: "text-[#7E57C2]", border: "border-[#7E57C2]/30" },
-    ];
+    // Fetch dynamic suggestion pills from backend on first open
+    useEffect(() => {
+        if (!isOpen || dynamicSuggestions.length > 0) return;
+        axios.get(`${API_URL}/api/context/suggestions`)
+            .then(res => {
+                if (Array.isArray(res.data.suggestions)) {
+                    setDynamicSuggestions(res.data.suggestions);
+                }
+            })
+            .catch(() => {
+                // Keep empty — suggestions panel will simply not render
+            });
+    }, [isOpen, dynamicSuggestions.length]);
+
+    const suggestions = dynamicSuggestions;
 
     const handleSuggestionClick = (query: string) => {
         setTextInput('');
@@ -778,6 +792,27 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
                                         </div>
                                     </motion.div>
                                 ))}
+
+                                {/* Greeting loading shimmer */}
+                                {greetingLoading && messages.length === 0 && (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 6 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="flex gap-3"
+                                    >
+                                        <div className="w-8 h-8 rounded-xl bg-white border border-[#202124]/12 flex items-center justify-center p-1.5 shrink-0 shadow-xs">
+                                            <img src="/icon.svg" alt="Kaizen" className="w-full h-full object-contain" />
+                                        </div>
+                                        <div className="bg-white rounded-2xl rounded-tl-xs px-4 py-3 border border-[#E2E8F0] shadow-xs flex items-center gap-3">
+                                            <div className="flex gap-1 items-center">
+                                                <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 0.8 }} className="w-2 h-2 rounded-full bg-[#4285F4]" />
+                                                <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.15 }} className="w-2 h-2 rounded-full bg-[#34A853]" />
+                                                <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.3 }} className="w-2 h-2 rounded-full bg-[#EA4335]" />
+                                            </div>
+                                            <span className="text-[12px] text-[#475569] font-sans font-medium">Loading live telemetry...</span>
+                                        </div>
+                                    </motion.div>
+                                )}
 
                                 {/* Thinking indicator */}
                                 {isProcessing && (

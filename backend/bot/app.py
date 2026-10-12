@@ -38,6 +38,120 @@ insights_engine = InsightsEngine(mongodb_service)
 
 # ============= API ENDPOINTS =============
 
+@app.route('/api/context/greeting', methods=['GET'])
+def get_greeting():
+    """Return a dynamic greeting built from live TEAM_DATA at request time"""
+    try:
+        from services.insights_engine import TEAM_DATA
+
+        # Compute live stats from TEAM_DATA
+        members = list(TEAM_DATA.values())
+        total_tickets = sum(m['total_tickets'] for m in members)
+        completed_count = sum(m['completed_count'] for m in members)
+        velocity_pct = round((completed_count / total_tickets) * 100, 1) if total_tickets else 0
+        total_commits = sum(m['commits'] for m in members)
+
+        active_engineers = []
+        for m in members:
+            ticket = m.get('active_ticket', {})
+            role_abbrev = m['role'].split()[-1]  # last word, e.g. "Architect"
+            active_engineers.append(f"{m['name']} *({role_abbrev})*")
+
+        active_tickets = [
+            m['active_ticket']['key']
+            for m in members
+            if m.get('active_ticket') and m['active_ticket'].get('status') == 'In Progress'
+        ]
+
+        blockers_count = sum(
+            1 for m in members
+            if 'critical' in m.get('blockers', '').lower() and 'zero' not in m.get('blockers', '').lower()
+        )
+        blockers_text = f"{blockers_count} critical blocker(s)" if blockers_count > 0 else "zero critical blockers"
+
+        engineers_str = ', '.join(active_engineers)
+        tickets_str = ', '.join(f'`{t}`' for t in active_tickets)
+
+        greeting = (
+            f"### 👋 Welcome to **Kaizen Intelligence**\n\n"
+            f"I am your live AI business delivery and engineering analytics copilot.\n\n"
+            f"I monitor and analyze our live delivery pipeline in real-time:\n\n"
+            f"• **Sprint Velocity** — {completed_count} of {total_tickets} deliverables completed ({velocity_pct}% velocity)\n"
+            f"• **Active Engineers** — {engineers_str}\n"
+            f"• **Jira & GitHub** — Active tickets ({tickets_str}), {total_commits} commits, and {blockers_text}\n"
+            f"• **AWS Architecture** — Multi-Tier VPC, EKS Kubernetes, Aurora Postgres & Redis\n\n"
+            f"💡 *Type your question below or click the microphone to dictate with Speech-to-Text.*"
+        )
+
+        return jsonify({'greeting': greeting})
+
+    except Exception as e:
+        print(f"Greeting error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/context/suggestions', methods=['GET'])
+def get_suggestions():
+    """Return dynamic quick-action suggestion pills based on live TEAM_DATA"""
+    try:
+        from services.insights_engine import TEAM_DATA
+
+        suggestions = []
+        colors = [
+            {"bg": "bg-[#E8F0FE]", "text": "text-[#1A73E8]", "border": "border-[#4285F4]/30"},
+            {"bg": "bg-[#F0E9FF]", "text": "text-[#7E57C2]", "border": "border-[#7E57C2]/30"},
+            {"bg": "bg-[#E6F4EA]", "text": "text-[#137333]", "border": "border-[#34A853]/30"},
+            {"bg": "bg-[#FEF7E0]", "text": "text-[#B06000]", "border": "border-[#FBBC05]/40"},
+        ]
+
+        # Team velocity pill
+        suggestions.append({
+            "label": "Team Velocity",
+            "query": "How is the team performing?",
+            **colors[0]
+        })
+
+        # Per-member active ticket pill
+        for i, (key, m) in enumerate(TEAM_DATA.items()):
+            ticket = m.get('active_ticket', {})
+            ticket_key = ticket.get('key', '')
+            role_short = m['role'].split()[-1]
+            suggestions.append({
+                "label": f"{m['name']}'s Status",
+                "query": f"What is {m['name']} working on?",
+                **(colors[(i + 1) % len(colors)])
+            })
+            if ticket_key:
+                suggestions.append({
+                    "label": f"Jira {ticket_key}",
+                    "query": f"Tell me about {ticket_key}",
+                    **(colors[i % len(colors)])
+                })
+
+        # Static useful pills
+        suggestions.append({
+            "label": "Project Health",
+            "query": "Is the project on track?",
+            **colors[2]
+        })
+        suggestions.append({
+            "label": "Blockers & Risks",
+            "query": "Are there any blockers?",
+            **colors[3]
+        })
+        suggestions.append({
+            "label": "Tech Stack & AWS",
+            "query": "What is our tech stack?",
+            **colors[1]
+        })
+
+        return jsonify({'suggestions': suggestions})
+
+    except Exception as e:
+        print(f"Suggestions error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""

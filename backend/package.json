@@ -6,9 +6,9 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "seed:roles": "node seed/seed_roles.js",
-    "seed:mock": "node seed/seed_mock.js",
-    "seed:insights": "node seed/seed_insights.js"
+    "seed:roles": "node seed_roles.js",
+    "seed:mock": "node seed_mock.js",
+    "seed:insights": "node seed_insights.js"
   },
   "keywords": [],
   "author": "",

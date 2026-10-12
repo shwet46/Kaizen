@@ -1,5 +1,5 @@
-const { runIngestion } = require('../services/ingestion');
-const { fetchCommits } = require('../services/githubClient');
+const { runIngestion } = require('./services/ingestion');
+const { fetchCommits } = require('./services/githubClient');
 const mongoose = require('mongoose');
 require('dotenv').config();
 

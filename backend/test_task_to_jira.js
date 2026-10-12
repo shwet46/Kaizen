@@ -2,15 +2,15 @@
  * Test: Fetch Tasks from MongoDB and Create Jira Issues
  * Assigns tasks to the 4 team members
  * 
- * Run: node test/test_task_to_jira.js
+ * Run: node test_task_to_jira.js
  */
 
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const axios = require('axios');
 const mongoose = require('mongoose');
-const Task = require('../models/Task');
+const Task = require('./models/Task');
 
 // ============= TEAM MEMBERS =============
 const TEAM = [
