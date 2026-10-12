@@ -1,10 +1,10 @@
 /**
  * Direct test of hierarchical LLM allocation
- * Run with: node test_llm_direct.js
+ * Run with: node test/test_llm_direct.js
  */
 
 require('dotenv').config();
-const { runHierarchicalAllocation } = require('./services/hierarchicalLLM');
+const { runHierarchicalAllocation } = require('../services/hierarchicalLLM');
 
 // Load employee data
 const fs = require('fs');

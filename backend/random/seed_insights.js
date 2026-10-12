@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const User = require('./models/User');
-const Commit = require('./models/Commit');
+const User = require('../models/User');
+const Commit = require('../models/Commit');
 require('dotenv').config();
 
 const USERS = [

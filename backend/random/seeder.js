@@ -1,10 +1,10 @@
 // seeder.js
 const mongoose = require('mongoose');
-const User = require('./models/User');
-const Task = require('./models/Task');
-const Commit = require('./models/Commit');
-const Issue = require('./models/Issue');
-const AllocationRun = require('./models/AllocationRun');
+const User = require('../models/User');
+const Task = require('../models/Task');
+const Commit = require('../models/Commit');
+const Issue = require('../models/Issue');
+const AllocationRun = require('../models/AllocationRun');
 require('dotenv').config();
 
 const dbConnect = async () => {

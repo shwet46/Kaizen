@@ -6,12 +6,12 @@
  * 
  * NO MOCKS - Uses actual Jira API
  * 
- * Run: node fetch_jira_to_mongodb.js
+ * Run: node random/fetch_jira_to_mongodb.js
  */
 
 const path = require('path');
 const fs = require('fs');
-require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const axios = require('axios');
 const mongoose = require('mongoose');
@@ -58,7 +58,7 @@ function checkEnvironmentVariables() {
     logHeader('PHASE 1: ENVIRONMENT VERIFICATION');
 
     // Check if .env file exists
-    const envPath = path.resolve(__dirname, '.env');
+    const envPath = path.resolve(__dirname, '..', '.env');
     if (!fs.existsSync(envPath)) {
         log('❌ .env file NOT found!', 'fail');
         log('Please create a .env file in the backend directory', 'fail');

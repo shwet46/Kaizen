@@ -4,11 +4,11 @@
  * This script fetches ALL tasks from the MongoDB 'test' database
  * and creates corresponding Jira issues for them
  * 
- * Run: node create_jira_from_test_tasks.js
+ * Run: node random/create_jira_from_test_tasks.js
  */
 
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const axios = require('axios');
 const mongoose = require('mongoose');

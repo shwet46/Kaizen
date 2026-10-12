@@ -6,7 +6,7 @@
  * 2. Team Level: Assign tasks to specific members
  */
 
-const { allocateTaskHierarchical } = require('./services/taskAllocator');
+const { allocateTaskHierarchical } = require('../services/taskAllocator');
 
 async function runTest() {
   console.log('\n' + '='.repeat(80));

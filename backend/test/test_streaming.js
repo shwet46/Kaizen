@@ -1,6 +1,6 @@
 /**
  * Test the streaming allocation endpoint
- * Run with: node test_streaming.js
+ * Run with: node test/test_streaming.js
  */
 
 const http = require('http');

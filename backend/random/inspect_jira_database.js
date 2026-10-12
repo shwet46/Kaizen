@@ -76,7 +76,7 @@ async function inspect() {
             console.log('\n⚠️  DATA IS IN THE WRONG DATABASE!');
             console.log('\n💡 SOLUTION:');
             console.log('   Option 1: Re-run the fetch script (it\'s now fixed to use mern-app)');
-            console.log('             Command: node fetch_jira_to_mongodb.js');
+            console.log('             Command: node random/fetch_jira_to_mongodb.js');
             console.log('');
             console.log('   Option 2: Move data from test to mern-app database');
             console.log('             (I can create a migration script for this)');

@@ -1,14 +1,14 @@
 /**
  * Process Transcript Script
  * Reads one.json transcript and generates meeting documentation
- * Run with: node processOneTranscript.js
+ * Run with: node random/processOneTranscript.js
  */
 
 const fs = require('fs');
 const path = require('path');
 
 // Read the transcript
-const transcriptPath = path.join(__dirname, '../Transcript/one.json');
+const transcriptPath = path.join(__dirname, '../../Transcript/one.json');
 const transcriptData = JSON.parse(fs.readFileSync(transcriptPath, 'utf8'));
 
 // Parse transcript
@@ -208,7 +208,7 @@ console.log('='.repeat(60) + '\n');
 console.log(JSON.stringify(employeeUpdates, null, 2));
 
 // Save outputs
-const outputDir = path.join(__dirname, '../Transcript');
+const outputDir = path.join(__dirname, '../../Transcript');
 
 // Save meeting doc
 const meetingDocPath = path.join(outputDir, 'one_meeting_doc.json');

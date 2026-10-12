@@ -3,12 +3,12 @@
  * 
  * This script reads tasks from a JSON file and creates Jira issues
  * 
- * Run: node create_jira_from_json.js [path/to/tasks.json]
+ * Run: node random/create_jira_from_json.js [path/to/tasks.json]
  */
 
 const path = require('path');
 const fs = require('fs');
-require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const axios = require('axios');
 

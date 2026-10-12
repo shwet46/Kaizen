@@ -50,6 +50,8 @@ flowchart LR
 │   ├── src/pages/          Dashboard routes and landing page
 │   └── src/lib/            API, allocation, and LLM client services
 ├── backend/                Express API and integrations
+│   ├── test/               Backend test and verification scripts
+│   ├── random/             One-off backend utilities and seed scripts
 │   ├── config/             Database, environment, and Passport setup
 │   ├── models/             Mongoose domain models
 │   ├── routes/             API route modules

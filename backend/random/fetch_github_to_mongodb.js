@@ -6,16 +6,16 @@
  * 
  * Uses actual GitHub API with OAuth authentication
  * 
- * Run: node fetch_github_to_mongodb.js
+ * Run: node random/fetch_github_to_mongodb.js
  */
 
 const path = require('path');
 const fs = require('fs');
-require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
 const axios = require('axios');
 const mongoose = require('mongoose');
-const OAuthCredential = require('./models/OAuthCredential');
+const OAuthCredential = require('../models/OAuthCredential');
 
 // ============= CONFIGURATION =============
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mern-app';
