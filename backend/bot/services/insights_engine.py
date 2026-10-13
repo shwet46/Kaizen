@@ -114,8 +114,8 @@ TEAM_DATA = {
         'blockers': 'Zero blockers. EKS staging cluster running stably with 99.98% availability.',
         'recommendation': 'Route Prometheus alert rules directly to the #eng-incidents Slack channel for real-time alerting.'
     },
-    'samarth': {
-        'name': 'Samarth',
+    'riya': {
+        'name': 'Riya',
         'role': 'AWS Cloud Engineer',
         'title': 'Cloud Infrastructure & Database Reliability Lead',
         'domain': 'High-Availability Databases, Caching & Disaster Recovery',
@@ -160,8 +160,16 @@ class InsightsEngine:
         self._init_gemini()
 
     def _init_gemini(self):
-        if not self.api_key:
-            self.api_key = os.getenv('GEMINI_API_KEY') or os.getenv('VITE_GEMINI_API_KEY')
+        if not self.api_key or 'your_gemini_api_key' in self.api_key or self.api_key.startswith('your_'):
+            for env_name in ['GEMINI_API_KEY', 'VITE_GEMINI_API_KEY']:
+                cand = (os.getenv(env_name) or '').strip().strip('"\'')
+                if cand and not cand.startswith('your_') and 'your_gemini_api_key' not in cand:
+                    self.api_key = cand
+                    break
+
+        if self.api_key:
+            self.api_key = self.api_key.strip().strip('"\'')
+
         if not self.api_key or 'your_gemini_api_key' in self.api_key or self.api_key.startswith('your_'):
             self.client = None
             return
@@ -171,24 +179,27 @@ class InsightsEngine:
             self.client = genai.Client(api_key=self.api_key)
             self.sdk_type = 'genai'
             print("Gemini initialized using google.genai")
+            return
         except Exception:
-            try:
-                import google.generativeai as legacy_genai
-                legacy_genai.configure(api_key=self.api_key)
-                
-                # Try modern model names
-                for m in ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-1.5-flash']:
-                    try:
-                        test_model = legacy_genai.GenerativeModel(model_name=m, system_instruction=self.system_prompt)
-                        self.client = test_model
-                        self.sdk_type = 'legacy'
-                        print(f"Gemini initialized using legacy model {m}")
-                        break
-                    except Exception:
-                        continue
-            except Exception as e:
-                print(f"Warning: Could not initialize Gemini SDK: {e}")
-                self.client = None
+            pass
+
+        try:
+            import google.generativeai as legacy_genai
+            legacy_genai.configure(api_key=self.api_key)
+            
+            # Use valid Google Gemini production models
+            for m in ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']:
+                try:
+                    test_model = legacy_genai.GenerativeModel(model_name=m, system_instruction=self.system_prompt)
+                    self.client = test_model
+                    self.sdk_type = 'legacy'
+                    print(f"Gemini initialized using legacy model {m}")
+                    break
+                except Exception:
+                    continue
+        except Exception as e:
+            print(f"Warning: Could not initialize Gemini SDK: {e}")
+            self.client = None
 
     def _load_system_prompt(self) -> str:
         """Load system prompt for AI"""
@@ -201,7 +212,7 @@ You have access to live data from:
    - Shweta: AWS Solutions Architect (VPC, CloudFront, WAF, KMS)
    - Maitri: AWS Backend Developer (FastAPI, Celery, SQS, JWT Auth)
    - Ojasvi: AWS DevOps Engineer (CI/CD, EKS Kubernetes, Helm, Prometheus/Grafana)
-   - Samarth: AWS Cloud Engineer (RDS Aurora Postgres, Redis Cache, Backup/DR)
+   - Riya: AWS Cloud Engineer (RDS Aurora Postgres, Redis Cache, Backup/DR)
 4. Project timelines, milestones, velocity metrics, and delivery health.
 
 Your tone is executive, crisp, encouraging, and data-backed.
@@ -259,7 +270,7 @@ Format your responses using clear markdown:
         # Check if query is about the engineering team rather than the AI bot
         is_about_team = any(w in normalized for w in [
             'team', 'member', 'developer', 'engineer', 'shweta', 'sweta', 'maitri', 'maitree',
-            'ojasvi', 'ojaswi', 'samarth', 'who is', 'who has', 'who are', 'who wrote', 'everyone'
+            'ojasvi', 'ojaswi', 'riya', 'who is', 'who has', 'who are', 'who wrote', 'everyone'
         ])
 
         # Bot identity & capabilities (only when NOT asking about the team)
@@ -279,7 +290,7 @@ Format your responses using clear markdown:
                     "मैं इंजीनियरिंग टीमों के लिए एक **AI Delivery Insights Assistant** हूं:\n\n"
                     "• **Jira स्प्रिंट ऑडिट:** 34 में से 26 कार्य पूरे (76.5% वेलोसिटी), टिकट्स (`KAN-101` से `KAN-112`) का लाइव स्टेटस\n"
                     "• **GitHub कोड मेट्रिक्स:** 184 कुल कमिट्स, कोड लाइनें और शीर्ष योगदानकर्ताओं का रीयल-टाइम विश्लेषण\n"
-                    "• **इंजीनियर्स का कार्य:** Shweta (AWS Arch), Maitri (Backend), Ojasvi (DevOps), Samarth (Cloud DB)\n"
+                    "• **इंजीनियर्स का कार्य:** Shweta (AWS Arch), Maitri (Backend), Ojasvi (DevOps), Riya (Cloud DB)\n"
                     "• **जोखिम और ब्लॉकर पहचान:** डिलीवरी टाइमलाइन और डिपेंडेंसी का निरंतर आकलन\n"
                     "• **Google Cloud AI वॉइस:** वॉइस-टू-टेक्स्ट ट्रांसक्रिप्शन और नेचुरल वॉइस सिंथेसिस\n\n"
                     "💡 *आप किसी भी इंजीनियर, Jira टिकट या टीम वेलोसिटी के बारे में पूछ सकते हैं।*"
@@ -293,7 +304,7 @@ Format your responses using clear markdown:
                 # "  - **Shweta** *(AWS Solutions Architect)*: Multi-Tier VPC, CloudFront edge distribution & WAF\n"
                 # "  - **Maitri** *(AWS Backend Developer)*: FastAPI async endpoints, Celery workers & AWS SQS\n"
                 # "  - **Ojasvi** *(AWS DevOps Engineer)*: GitHub Actions CI/CD pipelines & AWS EKS Kubernetes\n"
-                # "  - **Samarth** *(AWS Cloud Engineer)*: Aurora PostgreSQL Multi-AZ & ElastiCache Redis cluster\n"
+                # "  - **Riya** *(AWS Cloud Engineer)*: Aurora PostgreSQL Multi-AZ & ElastiCache Redis cluster\n"
                 # "• **Delivery Risk & Blocker Assessment:** Continuous monitoring of queue latencies, cross-region backups, and milestone forecasts\n"
                 "• **Voice-Enabled Interaction:** Real-time speech transcription & Google Cloud natural speech synthesis\n\n"
                 "💡 *Ask me: 'What is Shweta working on?', 'Tell me about KAN-108', or 'How is our velocity?'*"
@@ -307,7 +318,7 @@ Format your responses using clear markdown:
         query_lower = query.lower()
 
         # Check for specific team members
-        for name in ['Shweta', 'Maitri', 'Ojasvi', 'Samarth']:
+        for name in ['Shweta', 'Maitri', 'Ojasvi', 'Riya']:
             if name.lower() in query_lower:
                 context['user_status'] = self.mongodb.get_user_status(name)
                 context['individual_contribution'] = self.mongodb.get_individual_contribution(name)
@@ -355,22 +366,31 @@ Format your responses using clear markdown:
 
             if getattr(self, 'sdk_type', '') == 'genai':
                 from google.genai import types
-                response = self.client.models.generate_content(
-                    model='gemini-3.8-flash',
-                    contents=context_str,
-                    config=types.GenerateContentConfig(
-                        system_instruction=self.system_prompt,
-                        max_output_tokens=1500,
-                        temperature=0.7
-                    )
-                )
-                return response.text.strip()
+                for model_name in ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']:
+                    try:
+                        response = self.client.models.generate_content(
+                            model=model_name,
+                            contents=context_str,
+                            config=types.GenerateContentConfig(
+                                system_instruction=self.system_prompt,
+                                max_output_tokens=1500,
+                                temperature=0.7
+                            )
+                        )
+                        if response and response.text:
+                            return response.text.strip()
+                    except Exception as me:
+                        print(f"GenAI model {model_name} attempt note: {me}")
+                        continue
+                return self._generate_smart_fallback(query, context, language)
             elif getattr(self, 'sdk_type', '') == 'legacy':
                 response = self.client.generate_content(
                     context_str,
                     generation_config={"max_output_tokens": 1500, "temperature": 0.7}
                 )
-                return response.text.strip()
+                if response and response.text:
+                    return response.text.strip()
+                return self._generate_smart_fallback(query, context, language)
             else:
                 return self._generate_smart_fallback(query, context, language)
 
@@ -391,7 +411,7 @@ Format your responses using clear markdown:
             'shweta': ['shweta', 'sweta'],
             'maitri': ['maitri', 'maitree'],
             'ojasvi': ['ojasvi', 'ojaswi'],
-            'samarth': ['samarth']
+            'riya': ['riya', 'sharma', 'riya sharma']
         }
         members_found = []
         for key, aliases in alias_map.items():
@@ -457,7 +477,7 @@ Format your responses using clear markdown:
                     "1. 🥇 **Maitri** (AWS Backend Developer): **62 कमिट्स** (33.7% योगदान)\n"
                     "2. 🥈 **Shweta** (AWS Solutions Architect): **48 कमिट्स** (26.1% योगदान)\n"
                     "3. 🥉 **Ojasvi** (AWS DevOps Engineer): **41 कमिट्स** (22.3% योगदान)\n"
-                    "4. 🎖️ **Samarth** (AWS Cloud Engineer): **33 कमिट्स** (17.9% योगदान)\n\n"
+                    "4. 🎖️ **Riya** (AWS Cloud Engineer): **33 कमिट्स** (17.9% योगदान)\n\n"
                     "💡 **विश्लेषण:** Maitri का कमिट वॉल्यूम FastAPI REST endpoints और Celery SQS बैकग्राउंड वर्कर्स के कारण सबसे अधिक है।"
                 )
             return (
@@ -466,7 +486,7 @@ Format your responses using clear markdown:
                 "1. 🥇 **Maitri** *(AWS Backend Developer)*: **62 commits** (33.7% of total) • +5,120 lines added\n"
                 "2. 🥈 **Shweta** *(AWS Solutions Architect)*: **48 commits** (26.1% of total) • +3,240 lines added\n"
                 "3. 🥉 **Ojasvi** *(AWS DevOps Engineer)*: **41 commits** (22.3% of total) • +2,890 lines added\n"
-                "4. 🎖️ **Samarth** *(AWS Cloud Engineer)*: **33 commits** (17.9% of total) • +1,980 lines added\n\n"
+                "4. 🎖️ **Riya** *(AWS Cloud Engineer)*: **33 commits** (17.9% of total) • +1,980 lines added\n\n"
                 "💡 **Delivery Context:** Maitri leads commit frequency due to rapid iterations on async task queues and authentication endpoints."
             )
 
@@ -482,7 +502,7 @@ Format your responses using clear markdown:
                     "1. 🥇 **Maitri**: **+5,120 लाइनें जोड़ी गईं** / -1,240 हटाई गईं (**6,360 कुल लाइनें**)\n"
                     "2. 🥈 **Shweta**: **+3,240 लाइनें जोड़ी गईं** / -610 हटाई गईं (**3,850 कुल लाइनें**)\n"
                     "3. 🥉 **Ojasvi**: **+2,890 लाइनें जोड़ी गईं** / -430 हटाई गईं (**3,320 कुल लाइनें**)\n"
-                    "4. 🎖️ **Samarth**: **+1,980 लाइनें जोड़ी गईं** / -310 हटाई गईं (**2,290 कुल लाइनें**)\n\n"
+                    "4. 🎖️ **Riya**: **+1,980 लाइनें जोड़ी गईं** / -310 हटाई गईं (**2,290 कुल लाइनें**)\n\n"
                     "💡 **आर्किटेक्चर इनसाइट:** Maitri का कोड वॉल्यूम FastAPI डेटा स्कीमा और Celery टास्क लॉजिक का परिणाम है।"
                 )
             return (
@@ -491,7 +511,7 @@ Format your responses using clear markdown:
                 "1. 🥇 **Maitri**: **+5,120 lines added** / -1,240 deleted (**6,360 total lines changed**)\n"
                 "2. 🥈 **Shweta**: **+3,240 lines added** / -610 deleted (**3,850 total lines changed**)\n"
                 "3. 🥉 **Ojasvi**: **+2,890 lines added** / -430 deleted (**3,320 total lines changed**)\n"
-                "4. 🎖️ **Samarth**: **+1,980 lines added** / -310 deleted (**2,290 total lines changed**)\n\n"
+                "4. 🎖️ **Riya**: **+1,980 lines added** / -310 deleted (**2,290 total lines changed**)\n\n"
                 "💡 **Architecture Insight:** Maitri's codebase footprint reflects the implementation of FastAPI schemas, models, and Celery tasks."
             )
 
@@ -507,7 +527,7 @@ Format your responses using clear markdown:
                     "**Ojasvi** के पास सक्रिय स्प्रिंट में सबसे अधिक टिकट पूर्णता दर है:\n\n"
                     "1. 🥇 **Ojasvi**: **88.9% पूर्णता** (**9 में से 8 टिकट्स पूरे** • 1 प्रगति पर)\n"
                     "2. 🥈 **Shweta**: **75.0% पूर्णता** (**8 में से 6 टिकट्स पूरे** • 2 प्रगति पर)\n"
-                    "3. 🥉 **Samarth**: **71.4% पूर्णता** (**7 में से 5 टिकट्स पूरे** • 2 प्रगति पर)\n"
+                    "3. 🥉 **Riya**: **71.4% पूर्णता** (**7 में से 5 टिकट्स पूरे** • 2 प्रगति पर)\n"
                     "4. 🎖️ **Maitri**: **70.0% पूर्णता** (**10 में से 7 टिकट्स पूरे** • 3 प्रगति पर)\n\n"
                     "💡 **डिलीवरी नोट:** Ojasvi ने CI/CD ऑटोमेशन और EKS Helm चार्ट्स को तेजी से पूरा किया है।"
                 )
@@ -516,7 +536,7 @@ Format your responses using clear markdown:
                 "**Ojasvi** holds the highest delivery completion rate in the active sprint:\n\n"
                 "1. 🥇 **Ojasvi**: **88.9% completed** (**8 of 9 tickets closed** • 1 in progress)\n"
                 "2. 🥈 **Shweta**: **75.0% completed** (**6 of 8 tickets closed** • 2 in progress)\n"
-                "3. 🥉 **Samarth**: **71.4% completed** (**5 of 7 tickets closed** • 2 in progress)\n"
+                "3. 🥉 **Riya**: **71.4% completed** (**5 of 7 tickets closed** • 2 in progress)\n"
                 "4. 🎖️ **Maitri**: **70.0% completed** (**7 of 10 tickets closed** • 3 in progress)\n\n"
                 "💡 **Delivery Note:** Ojasvi achieved 88.9% completion through automated CI/CD pipeline verification and Helm chart stabilization."
             )
@@ -531,7 +551,7 @@ Format your responses using clear markdown:
                 "Current distribution of active (in-progress) deliverables across engineers:\n\n"
                 "• **Maitri:** **3 active tickets** (`KAN-105: Celery & SQS Async Workers`)\n"
                 "• **Shweta:** **2 active tickets** (`KAN-103: CloudFront Distribution & WAF`)\n"
-                "• **Samarth:** **2 active tickets** (`KAN-112: AWS Backup & DR Automation`)\n"
+                "• **Riya:** **2 active tickets** (`KAN-112: AWS Backup & DR Automation`)\n"
                 "• **Ojasvi:** **1 active ticket** (`KAN-109: Prometheus & Grafana Alerts`)\n\n"
                 "💡 **Workload Balance:** Total in-progress workload (8 deliverables) is evenly balanced across the team without any single-point overload."
             )
@@ -540,7 +560,7 @@ Format your responses using clear markdown:
         # 3. ROLE / DOMAIN SEARCHES ("Who is working on X?")
         # ------------------------------------------------------------------
         # Backend
-        if any(w in q_clean for w in ['backend', 'fastapi', 'celery', 'sqs', 'api', 'rest endpoint', 'jwt', 'pydantic']) and not any(k in q_clean for k in ['shweta', 'sweta', 'ojasvi', 'ojaswi', 'samarth']):
+        if any(w in q_clean for w in ['backend', 'fastapi', 'celery', 'sqs', 'api', 'rest endpoint', 'jwt', 'pydantic']) and not any(k in q_clean for k in ['shweta', 'sweta', 'ojasvi', 'ojaswi', 'riya']):
             m = TEAM_DATA['maitri']
             return (
                 f"### ⚙️ Backend Engineering Lead: **{m['name']}** ({m['role']})\n\n"
@@ -553,7 +573,7 @@ Format your responses using clear markdown:
             )
 
         # DevOps / Kubernetes / CI/CD
-        if any(w in q_clean for w in ['devops', 'kubernetes', 'eks', 'ci/cd', 'helm', 'docker', 'prometheus', 'grafana', 'pipeline', 'monitoring']) and not any(k in q_clean for k in ['shweta', 'sweta', 'maitri', 'maitree', 'samarth']):
+        if any(w in q_clean for w in ['devops', 'kubernetes', 'eks', 'ci/cd', 'helm', 'docker', 'prometheus', 'grafana', 'pipeline', 'monitoring']) and not any(k in q_clean for k in ['shweta', 'sweta', 'maitri', 'maitree', 'riya']):
             m = TEAM_DATA['ojasvi']
             return (
                 f"### 🚀 DevOps & Platform Lead: **{m['name']}** ({m['role']})\n\n"
@@ -567,7 +587,7 @@ Format your responses using clear markdown:
 
         # Database / Cloud DB / Redis / Aurora
         if any(w in q_clean for w in ['database', 'postgres', 'aurora', 'redis', 'db', 'sql', 'backup', 'disaster recovery', 'dr']) and not any(k in q_clean for k in ['shweta', 'sweta', 'maitri', 'maitree', 'ojasvi', 'ojaswi']):
-            m = TEAM_DATA['samarth']
+            m = TEAM_DATA['riya']
             return (
                 f"### 🗄️ Database & Cloud Infrastructure Lead: **{m['name']}** ({m['role']})\n\n"
                 f"**{m['name']}** manages cloud data persistence, caching clusters, and disaster recovery:\n\n"
@@ -575,11 +595,11 @@ Format your responses using clear markdown:
                 f"• **Key Deliverables Delivered:** `KAN-110` (Aurora PostgreSQL Multi-AZ) and `KAN-111` (ElastiCache Redis)\n"
                 f"• **Code Contribution:** **{m['commits']} commits** (+{m['lines_added']:,} lines added) in database IaC\n"
                 f"• **Tech Stack:** Amazon Aurora PostgreSQL, ElastiCache Redis, AWS Backup, Terraform\n\n"
-                f"💡 **Recommendation:** Coordinate the scheduled 30-second automated failover test with Samarth."
+                f"💡 **Recommendation:** Coordinate the scheduled 30-second automated failover test with Riya."
             )
 
         # Architecture / Security / VPC / CloudFront / WAF
-        if any(w in q_clean for w in ['architect', 'architecture', 'vpc', 'networking', 'security', 'iam', 'waf', 'cloudfront']) and not any(k in q_clean for k in ['maitri', 'maitree', 'ojasvi', 'ojaswi', 'samarth']):
+        if any(w in q_clean for w in ['architect', 'architecture', 'vpc', 'networking', 'security', 'iam', 'waf', 'cloudfront']) and not any(k in q_clean for k in ['maitri', 'maitree', 'ojasvi', 'ojaswi', 'riya']):
             m = TEAM_DATA['shweta']
             return (
                 f"### 🏛️ AWS Solutions Architect & Security Lead: **{m['name']}** ({m['role']})\n\n"
@@ -592,12 +612,12 @@ Format your responses using clear markdown:
             )
 
         # Frontend
-        if any(w in q_clean for w in ['frontend', 'ui', 'react', 'vite', 'web application', 'dashboard ui']) and not any(k in q_clean for k in ['shweta', 'sweta', 'maitri', 'maitree', 'ojasvi', 'ojaswi', 'samarth']):
+        if any(w in q_clean for w in ['frontend', 'ui', 'react', 'vite', 'web application', 'dashboard ui']) and not any(k in q_clean for k in ['shweta', 'sweta', 'maitri', 'maitree', 'ojasvi', 'ojaswi', 'riya']):
             return (
                 "### 🖥️ Frontend & Dashboard Integration\n\n"
                 "The Kaizen analytics dashboard is built with **React, Vite, and TypeScript**:\n\n"
                 "• **Architecture:** Responsive enterprise telemetry dashboard interfacing with Express (port 8000) and the Voice Intelligence Bot (port 5001)\n"
-                "• **Engineering Team Integration:** Real-time Jira delivery and GitHub metrics feed directly from workstreams led by **Shweta, Maitri, Ojasvi, and Samarth**\n"
+                "• **Engineering Team Integration:** Real-time Jira delivery and GitHub metrics feed directly from workstreams led by **Shweta, Maitri, Ojasvi, and Riya**\n"
                 "• **Observability:** Integrates Google Cloud Speech-to-Text and Text-to-Speech directly into executive workflow cards\n\n"
                 "💡 **UI Health:** Fully compiled and running with 0 build warnings."
             )
@@ -623,7 +643,7 @@ Format your responses using clear markdown:
                     "• **Shweta** *(AWS Solutions Architect)*: 48 कमिट्स • सक्रिय: `KAN-103: CloudFront Distribution & WAF`\n"
                     "• **Maitri** *(AWS Backend Developer)*: 62 कमिट्स • सक्रिय: `KAN-105: Async Task Processing with Celery & SQS`\n"
                     "• **Ojasvi** *(AWS DevOps Engineer)*: 41 कमिट्स • सक्रिय: `KAN-109: Prometheus & Grafana Monitoring Alerts`\n"
-                    "• **Samarth** *(AWS Cloud Engineer)*: 33 कमिट्स • सक्रिय: `KAN-112: AWS Backup & DR Automation`\n\n"
+                    "• **Riya** *(AWS Cloud Engineer)*: 33 कमिट्स • सक्रिय: `KAN-112: AWS Backup & DR Automation`\n\n"
                     "💡 **सारांश:** कुल **184 कमिट्स** और **76.5% स्प्रिंट पूर्णता**। Maitri कमिट्स में सबसे आगे हैं और Ojasvi टिकट कंप्लीशन में।"
                 )
 
@@ -642,7 +662,7 @@ Format your responses using clear markdown:
                 "  - **Workstream:** `KAN-109: Prometheus & Grafana Monitoring Alerts` *(In Progress)*\n"
                 "  - **Deliverables:** **8 of 9 tickets closed** (🏆 88.9% velocity) • 41 commits\n"
                 "  - **Domain:** AWS EKS Kubernetes clusters, Helm charts, GitHub Actions CI/CD\n\n"
-                "• **Samarth** *(AWS Cloud Engineer)*\n"
+                "• **Riya** *(AWS Cloud Engineer)*\n"
                 "  - **Workstream:** `KAN-112: AWS Backup & Disaster Recovery Automation` *(In Progress)*\n"
                 "  - **Deliverables:** 5 of 7 tickets closed • 33 commits (+1,980 lines added)\n"
                 "  - **Domain:** Aurora PostgreSQL Multi-AZ, ElastiCache Redis, Automated snapshots\n\n"
@@ -835,9 +855,9 @@ Format your responses using clear markdown:
                 'KAN-107': {'title': 'Configure GitHub Actions CI/CD Pipeline', 'status': 'Done', 'assignee': 'Ojasvi', 'role': 'AWS DevOps Engineer', 'priority': 'High', 'desc': 'Automated test suite, linting, Docker image build, and security vulnerability scanning.'},
                 'KAN-108': {'title': 'EKS Cluster Provisioning with Helm Charts', 'status': 'Done', 'assignee': 'Ojasvi', 'role': 'AWS DevOps Engineer', 'priority': 'Critical', 'desc': 'Production-grade Kubernetes cluster on AWS EKS using Helm package charts for manifests.'},
                 'KAN-109': {'title': 'Prometheus & Grafana Monitoring Alerts', 'status': 'In Progress', 'assignee': 'Ojasvi', 'role': 'AWS DevOps Engineer', 'priority': 'Medium', 'desc': 'Cluster metrics collection, node exporters, and custom Slack alerts for high CPU/memory.'},
-                'KAN-110': {'title': 'RDS Aurora PostgreSQL Multi-AZ Setup', 'status': 'Done', 'assignee': 'Samarth', 'role': 'AWS Cloud Engineer', 'priority': 'High', 'desc': 'High-availability relational database cluster with automatic failover and read replicas.'},
-                'KAN-111': {'title': 'ElastiCache Redis Cluster Configuration', 'status': 'Done', 'assignee': 'Samarth', 'role': 'AWS Cloud Engineer', 'priority': 'Medium', 'desc': 'In-memory caching tier with cluster mode enabled for sub-millisecond query responses.'},
-                'KAN-112': {'title': 'AWS Backup & Disaster Recovery Automation', 'status': 'In Progress', 'assignee': 'Samarth', 'role': 'AWS Cloud Engineer', 'priority': 'High', 'desc': 'Automated cross-region snapshot replication and RPO/RTO compliance verification.'},
+                'KAN-110': {'title': 'RDS Aurora PostgreSQL Multi-AZ Setup', 'status': 'Done', 'assignee': 'Riya', 'role': 'AWS Cloud Engineer', 'priority': 'High', 'desc': 'High-availability relational database cluster with automatic failover and read replicas.'},
+                'KAN-111': {'title': 'ElastiCache Redis Cluster Configuration', 'status': 'Done', 'assignee': 'Riya', 'role': 'AWS Cloud Engineer', 'priority': 'Medium', 'desc': 'In-memory caching tier with cluster mode enabled for sub-millisecond query responses.'},
+                'KAN-112': {'title': 'AWS Backup & Disaster Recovery Automation', 'status': 'In Progress', 'assignee': 'Riya', 'role': 'AWS Cloud Engineer', 'priority': 'High', 'desc': 'Automated cross-region snapshot replication and RPO/RTO compliance verification.'},
             }
 
             if ticket_key in tickets_db:
@@ -871,7 +891,7 @@ Format your responses using clear markdown:
                 "• **`KAN-103` (Shweta):** *CloudFront Distribution & WAF Setup* — Edge caching & DDoS firewall rules\n"
                 "• **`KAN-105` (Maitri):** *Async Task Processing with Celery & SQS* — Background worker concurrency\n"
                 "• **`KAN-109` (Ojasvi):** *Prometheus & Grafana Monitoring Alerts* — Live cluster observability metrics\n"
-                "• **`KAN-112` (Samarth):** *AWS Backup & Disaster Recovery Automation* — Automated cross-region snapshot policies\n\n"
+                "• **`KAN-112` (Riya):** *AWS Backup & Disaster Recovery Automation* — Automated cross-region snapshot policies\n\n"
                 "💡 **Forecast:** All 4 active tasks have zero blockers and are on track for staging deployment by end of week."
             )
 
@@ -885,7 +905,7 @@ Format your responses using clear markdown:
                 "• **Infrastructure:** `KAN-101` Multi-Tier VPC & `KAN-102` IAM Least Privilege *(Shweta)*\n"
                 "• **Backend Services:** `KAN-104` FastAPI REST Endpoints & `KAN-106` JWT Role Middleware *(Maitri)*\n"
                 "• **Platform & DevOps:** `KAN-107` CI/CD Pipeline & `KAN-108` EKS Kubernetes Cluster *(Ojasvi)*\n"
-                "• **Data Tier:** `KAN-110` RDS Aurora PostgreSQL & `KAN-111` Redis ElastiCache *(Samarth)*\n\n"
+                "• **Data Tier:** `KAN-110` RDS Aurora PostgreSQL & `KAN-111` Redis ElastiCache *(Riya)*\n\n"
                 "💡 **Quality Metric:** 100% of completed tickets passed automated CI/CD test gates with zero regression."
             )
 
@@ -900,7 +920,7 @@ Format your responses using clear markdown:
                 "• **Top Contributor:** **Maitri** with **62 commits** (5,120 lines added)\n"
                 "• **Infrastructure Commits:** **Shweta** with **48 commits** (Terraform VPC modules, KMS encryption)\n"
                 "• **DevOps Automation:** **Ojasvi** with **41 commits** (GitHub Actions, Helm manifests)\n"
-                "• **Database IaC:** **Samarth** with **33 commits** (Aurora Postgres Terraform scripts)\n\n"
+                "• **Database IaC:** **Riya** with **33 commits** (Aurora Postgres Terraform scripts)\n\n"
                 "💡 **Recent Commit Highlight:** `security: tighten S3 bucket policies and KMS encryption` by Shweta."
             )
 
@@ -927,7 +947,7 @@ Format your responses using clear markdown:
                 "### 🛡️ Delivery Risk & Blocker Assessment\n\n"
                 "**Zero critical blockers** are currently logged in Jira. However, here are two low-risk watch items:\n\n"
                 "1. **Async SQS Queue Latency (`KAN-105`):** Maitri is configuring Celery worker retries. Keep an eye on FIFO message deduplication.\n"
-                "2. **Cross-Region Snapshot Timing (`KAN-112`):** Samarth's automated backup script needs IAM role validation across us-east-1 and us-west-2.\n\n"
+                "2. **Cross-Region Snapshot Timing (`KAN-112`):** Riya's automated backup script needs IAM role validation across us-east-1 and us-west-2.\n\n"
                 "💡 **Mitigation Plan:** Both items have assigned engineers with solutions in staging. No impact to sprint deadline."
             )
 
@@ -957,7 +977,7 @@ Format your responses using clear markdown:
                 "1. **Approve CloudFront WAF Rules (`KAN-103`):** Review rate-limiting thresholds with Shweta before edge deployment.\n"
                 "2. **Run Celery Load Test (`KAN-105`):** Benchmark Maitri's async worker queue with 1,000 synthetic tasks.\n"
                 "3. **Validate Grafana Alerting (`KAN-109`):** Ensure Ojasvi's alert triggers route to the #eng-incidents Slack channel.\n"
-                "4. **Execute Failover Drill (`KAN-110`):** Validate Aurora PostgreSQL 30-second automated failover with Samarth.\n\n"
+                "4. **Execute Failover Drill (`KAN-110`):** Validate Aurora PostgreSQL 30-second automated failover with Riya.\n\n"
                 "💡 **Conclusion:** Engineering velocity is outstanding. Moving into final security auditing and regression signoff."
             )
 
@@ -970,7 +990,7 @@ Format your responses using clear markdown:
         if 'api' in q or 'backend' in q or 'server' in q or 'endpoint' in q:
             topics.append("FastAPI REST endpoints and Celery asynchronous processing (Maitri)")
         if 'db' in q or 'data' in q or 'sql' in q or 'redis' in q or 'storage' in q:
-            topics.append("Aurora PostgreSQL Multi-AZ & Redis caching tier (Samarth)")
+            topics.append("Aurora PostgreSQL Multi-AZ & Redis caching tier (Riya)")
         if 'security' in q or 'iam' in q or 'auth' in q or 'waf' in q:
             topics.append("IAM least-privilege security and CloudFront WAF protection (Shweta)")
 

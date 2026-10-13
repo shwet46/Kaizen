@@ -17,7 +17,7 @@ const TEAM = [
     { name: 'Shweta', accountId: '712020:f4133ad3-9b22-491e-8260-37d3ce9dcf04', role: 'AWS Solutions Architect' },
     { name: 'Maitri', accountId: '712020:88eb9ecb-d9f0-40ee-a5d0-9cbe35c6ac8f', role: 'AWS Backend Developer' },
     { name: 'Ojasvi', accountId: '712020:27f806c7-3623-4153-bb5b-0f60bb121dec', role: 'AWS DevOps Engineer' },
-    { name: 'Samarth', accountId: '712020:a0876b3e-cc7b-403e-8aac-a8929a1c080e', role: 'AWS Cloud Engineer' }
+    { name: 'Riya', accountId: '712020:a0876b3e-cc7b-403e-8aac-a8929a1c080e', role: 'AWS Cloud Engineer' }
 ];
 
 // ============= JIRA CONFIG =============
@@ -62,15 +62,15 @@ function mapRoleToTeamMember(roleRequired) {
         'devops engineer': 'Ojasvi',
         'devops': 'Ojasvi',
         'cloud devops': 'Ojasvi',
-        'aws cloud engineer': 'Samarth',
-        'cloud engineer': 'Samarth',
-        'infrastructure engineer': 'Samarth',
-        'sre': 'Samarth',
+        'aws cloud engineer': 'Riya',
+        'cloud engineer': 'Riya',
+        'infrastructure engineer': 'Riya',
+        'sre': 'Riya',
         // Generic AWS - distribute among team
         'aws': 'Shweta',
         // Fallback mappings
         'frontend': 'Shweta',
-        'qa': 'Samarth'
+        'qa': 'Riya'
     };
 
     const normalizedRole = roleRequired?.toLowerCase() || '';

@@ -18,6 +18,18 @@ import {
 } from "@/components/FancyComponents";
 import { InteractiveDashboardPreview } from "@/components/InteractiveDashboardPreview";
 import {
+  Background as FlowBackground,
+  BackgroundVariant,
+  Controls as FlowControls,
+  Handle,
+  MarkerType,
+  Position,
+  ReactFlow,
+  type Edge,
+  type Node,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import {
   AnimateOnScroll,
   StaggerContainer,
   StaggerItem,
@@ -37,7 +49,6 @@ import {
   LiaGithub as FaGithub,
   LiaSlack as FaSlack,
   LiaJira as FaJira,
-  LiaAws as FaAws,
   LiaCheckCircle as FaRegCircleCheck,
   LiaTachometerAltSolid as FaGaugeHigh,
   LiaHeartbeatSolid as FaHeartPulse,
@@ -74,6 +85,231 @@ const DashboardLink = ({
     {children}
   </Link>
 );
+
+interface SystemArchNodeData {
+  step: string;
+  title: string;
+  subtitle: string;
+  tags: string[];
+  icon: ReactNode;
+  color: string;
+  isInput?: boolean;
+  isOutput?: boolean;
+}
+
+const ArchitectureNode = ({ data }: { data: SystemArchNodeData }) => {
+  return (
+    <div
+      className="sys-arch-node"
+      style={{
+        ["--node-accent" as any]: data.color,
+      }}
+    >
+      {!data.isInput && (
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="sys-arch-handle"
+          style={{ background: data.color }}
+        />
+      )}
+      <div className="sys-arch-node-top">
+        <div className="sys-arch-icon" style={{ color: data.color, background: `${data.color}18` }}>
+          {data.icon}
+        </div>
+        <div className="sys-arch-meta">
+          <span className="sys-arch-step" style={{ color: data.color }}>{data.step}</span>
+          <span className="sys-arch-dot" style={{ background: data.color }} />
+        </div>
+      </div>
+      <div className="sys-arch-node-body">
+        <div className="sys-arch-title">{data.title}</div>
+        <div className="sys-arch-subtitle">{data.subtitle}</div>
+        <div className="sys-arch-pills">
+          {data.tags.map((t: string, i: number) => (
+            <span key={i} className="sys-arch-pill">{t}</span>
+          ))}
+        </div>
+      </div>
+      {!data.isOutput && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="sys-arch-handle"
+          style={{ background: data.color }}
+        />
+      )}
+    </div>
+  );
+};
+
+const nodeTypes = {
+  archNode: ArchitectureNode,
+};
+
+const systemDesignNodes: Node[] = [
+  {
+    id: "sources",
+    type: "archNode",
+    position: { x: 30, y: 160 },
+    data: {
+      step: "01 · SOURCES",
+      title: "Ecosystem Sources",
+      subtitle: "GitHub · Jira · Slack",
+      tags: ["Webhooks", "APIs"],
+      icon: <FaGithub />,
+      color: "#4285F4",
+      isInput: true,
+    },
+  },
+  {
+    id: "ingestion",
+    type: "archNode",
+    position: { x: 350, y: 160 },
+    data: {
+      step: "02 · INGEST",
+      title: "Signal Ingestion",
+      subtitle: "Event Stream Broker",
+      tags: ["Kafka", "Webhooks"],
+      icon: <FaBolt />,
+      color: "#EA4335",
+    },
+  },
+  {
+    id: "backend",
+    type: "archNode",
+    position: { x: 675, y: 45 },
+    data: {
+      step: "03A · API",
+      title: "FastAPI Core",
+      subtitle: "Metrics & Telemetry API",
+      tags: ["FastAPI", "Python"],
+      icon: <FaServer />,
+      color: "#34A853",
+    },
+  },
+  {
+    id: "ai",
+    type: "archNode",
+    position: { x: 675, y: 275 },
+    data: {
+      step: "03B · AI",
+      title: "Gemini",
+      subtitle: "Vertex AI reasoning",
+      tags: ["Gemini", "Vertex AI"],
+      icon: <FaBolt />,
+      color: "#7E57C2",
+    },
+  },
+  {
+    id: "data",
+    type: "archNode",
+    position: { x: 1000, y: 160 },
+    data: {
+      step: "04 · STORE",
+      title: "Knowledge Store",
+      subtitle: "MongoDB & Neo4j",
+      tags: ["Graph", "Document"],
+      icon: <FaDatabase />,
+      color: "#FBBC05",
+    },
+  },
+  {
+    id: "workspace",
+    type: "archNode",
+    position: { x: 1320, y: 160 },
+    data: {
+      step: "05 · UI",
+      title: "Executive Workspace",
+      subtitle: "React Dashboard",
+      tags: ["React", "Live View"],
+      icon: <FaRocket />,
+      color: "#4285F4",
+      isOutput: true,
+    },
+  },
+];
+
+const systemDesignEdges: Edge[] = [
+  {
+    id: "sources-ingestion",
+    source: "sources",
+    target: "ingestion",
+    animated: true,
+    type: "smoothstep",
+    label: "Webhooks & APIs",
+    style: { stroke: "#4285F4", strokeWidth: 2.5 },
+    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 1, rx: 6, ry: 6, stroke: "#64748b", strokeWidth: 1.5 },
+    labelBgPadding: [10, 6],
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#4285F4", width: 16, height: 16 },
+  },
+  {
+    id: "ingestion-backend",
+    source: "ingestion",
+    target: "backend",
+    animated: true,
+    type: "smoothstep",
+    label: "Event Stream",
+    style: { stroke: "#34A853", strokeWidth: 2.5 },
+    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 1, rx: 6, ry: 6, stroke: "#64748b", strokeWidth: 1.5 },
+    labelBgPadding: [10, 6],
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#34A853", width: 16, height: 16 },
+  },
+  {
+    id: "ingestion-ai",
+    source: "ingestion",
+    target: "ai",
+    animated: true,
+    type: "smoothstep",
+    label: "Context Prompts",
+    style: { stroke: "#7E57C2", strokeWidth: 2.5 },
+    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 1, rx: 6, ry: 6, stroke: "#64748b", strokeWidth: 1.5 },
+    labelBgPadding: [10, 6],
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#7E57C2", width: 16, height: 16 },
+  },
+  {
+    id: "backend-data",
+    source: "backend",
+    target: "data",
+    animated: true,
+    type: "smoothstep",
+    label: "Calculated Metrics",
+    style: { stroke: "#34A853", strokeWidth: 2.5 },
+    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 1, rx: 6, ry: 6, stroke: "#64748b", strokeWidth: 1.5 },
+    labelBgPadding: [10, 6],
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#34A853", width: 16, height: 16 },
+  },
+  {
+    id: "ai-data",
+    source: "ai",
+    target: "data",
+    animated: true,
+    type: "smoothstep",
+    label: "Graph & Vectors",
+    style: { stroke: "#7E57C2", strokeWidth: 2.5 },
+    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 1, rx: 6, ry: 6, stroke: "#64748b", strokeWidth: 1.5 },
+    labelBgPadding: [10, 6],
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#7E57C2", width: 16, height: 16 },
+  },
+  {
+    id: "data-workspace",
+    source: "data",
+    target: "workspace",
+    animated: true,
+    type: "smoothstep",
+    label: "Live WebSockets",
+    style: { stroke: "#FBBC05", strokeWidth: 2.5 },
+    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 1, rx: 6, ry: 6, stroke: "#64748b", strokeWidth: 1.5 },
+    labelBgPadding: [10, 6],
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#FBBC05", width: 16, height: 16 },
+  },
+];
 
 export default function LandingPage() {
 
@@ -146,7 +382,7 @@ export default function LandingPage() {
 
   const integrationLogos = [
     { name: "GitHub", icon: <FaGithub /> },
-    { name: "AWS Cloud", icon: <FaAws /> },
+    { name: "Google Cloud", icon: <FaServer /> },
     { name: "Jira Software", icon: <FaJira /> },
     { name: "Slack", icon: <FaSlack /> },
     { name: "Kubernetes", icon: <FaServer /> },
@@ -163,6 +399,51 @@ export default function LandingPage() {
     "Cycle time decreased by 18.2% to 2.4 days",
     "Autonomous FinOps idle compute savings: $28,400/mo",
     "Zero-trust SOC2 Type II compliance audit ready",
+  ];
+
+  const techStack = [
+    {
+      category: "UI",
+      title: "React",
+      tags: ["React", "TypeScript", "Tailwind CSS"],
+      icon: <FaCodeBranch />,
+      color: "#4285F4",
+    },
+    {
+      category: "API",
+      title: "FastAPI",
+      tags: ["FastAPI", "Python", "Redis Queue"],
+      icon: <FaServer />,
+      color: "#34A853",
+    },
+    {
+      category: "Data Layer",
+      title: "MongoDB · Neo4j",
+      tags: ["MongoDB Atlas", "Neo4j Graph"],
+      icon: <FaDatabase />,
+      color: "#FBBC05",
+    },
+    {
+      category: "AI Intelligence",
+      title: "Gemini LLM intelligence via Vertex AI",
+      tags: ["Gemini LLM", "Vertex AI", "Reasoning"],
+      icon: <FaBolt />,
+      color: "#7E57C2",
+    },
+    {
+      category: "Ecosystem",
+      title: "GitHub · Jira · Slack",
+      tags: ["GitHub", "Jira", "Slack"],
+      icon: <FaGithub />,
+      color: "#EA4335",
+    },
+    {
+      category: "Infrastructure",
+      title: "Google Cloud & Kubernetes",
+      tags: ["GCP", "Kubernetes (GKE)", "Docker"],
+      icon: <FaShieldHalved />,
+      color: "#1A73E8",
+    },
   ];
 
   return (
@@ -564,7 +845,135 @@ export default function LandingPage() {
         </section>
 
         {/* ================================================================
-          7. PRICING
+          7. TECHNOLOGY STACK
+          The foundation behind the intelligence layer.
+          ================================================================ */}
+        <section className="section tech-stack-section" id="tech-stack">
+          <div className="container container-lg">
+            <div className="tech-stack-heading">
+              <AnimateOnScroll>
+                <span className="section-label">Built for the real world</span>
+                <h2 className="section-title">
+                  A modern stack for{" "}
+                  <TextHighlighter color="var(--accent-blue-light)" strokeColor="var(--accent-blue)">
+                    dependable intelligence
+                  </TextHighlighter>
+                </h2>
+              </AnimateOnScroll>
+            </div>
+
+            <div className="tech-stack-grid">
+              {techStack.map((item) => (
+                <div key={item.category} className="tech-stack-col">
+                  <div className="tech-stack-card-small" style={{ ["--card-accent" as any]: item.color }}>
+                    <div className="tech-small-header">
+                      <div className="tech-small-icon" style={{ color: item.color, background: `${item.color}15` }}>
+                        {item.icon}
+                      </div>
+                      <span className="tech-small-category">{item.category}</span>
+                    </div>
+
+                    <h3 className="tech-small-title">{item.title}</h3>
+
+                    <div className="tech-small-tags">
+                      {item.tags.map((tag) => (
+                        <span key={tag} className="tech-small-tag">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Unboxed, Open System Design Canvas */}
+            <AnimateOnScroll delay={0.15}>
+              <div className="system-design-section-wrapper">
+                <div className="system-design-header">
+                  <div className="system-design-header-left">
+                    <span className="section-label">Architecture Pipeline</span>
+                    <h3 className="system-design-title">
+                      Live Signal Ingestion & Intelligence Flow
+                    </h3>
+                    <p className="system-design-desc">
+                      Trace how events travel from raw developer touchpoints through real-time streaming, parallel AI reasoning, and bi-temporal graph storage into boardroom dashboards.
+                    </p>
+                  </div>
+                  <div className="system-design-header-right">
+                    <div className="system-design-meta-pills">
+                      <span className="meta-pill">
+                        <span className="meta-dot live" />
+                        Live Event Streaming
+                      </span>
+                      <span className="meta-pill">
+                        <FaServer style={{ fontSize: "0.85rem", color: "var(--accent-mint)" }} />
+                        Deployed on GCP
+                      </span>
+                      <span className="meta-pill">
+                        <FaLock style={{ fontSize: "0.85rem", color: "var(--accent-lavender)" }} />
+                        SOC2 Type II Ready
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="system-design-canvas-wrapper">
+                  <div className="system-design-flow-canvas">
+                    <ReactFlow
+                      nodes={systemDesignNodes}
+                      edges={systemDesignEdges}
+                      nodeTypes={nodeTypes}
+                      fitView
+                      fitViewOptions={{ padding: 0.08 }}
+                      minZoom={0.2}
+                      maxZoom={1.5}
+                      nodesDraggable={true}
+                      nodesConnectable={false}
+                      zoomOnScroll={false}
+                      panOnScroll={false}
+                      preventScrolling={false}
+                      proOptions={{ hideAttribution: true }}
+                    >
+                      <FlowBackground variant={BackgroundVariant.Dots} gap={24} size={1.2} color="#cbd5e1" />
+                      <FlowControls showInteractive={false} className="system-design-controls" />
+                    </ReactFlow>
+                  </div>
+
+                  <div className="system-design-legend">
+                    <div className="legend-item">
+                      <span className="legend-step">01</span>
+                      <span className="legend-label">Ecosystem Sources</span>
+                    </div>
+                    <span className="legend-arrow">→</span>
+                    <div className="legend-item">
+                      <span className="legend-step">02</span>
+                      <span className="legend-label">Stream Broker</span>
+                    </div>
+                    <span className="legend-arrow">→</span>
+                    <div className="legend-item">
+                      <span className="legend-step">03</span>
+                      <span className="legend-label">FastAPI & Gemini</span>
+                    </div>
+                    <span className="legend-arrow">→</span>
+                    <div className="legend-item">
+                      <span className="legend-step">04</span>
+                      <span className="legend-label">Knowledge Store</span>
+                    </div>
+                    <span className="legend-arrow">→</span>
+                    <div className="legend-item">
+                      <span className="legend-step">05</span>
+                      <span className="legend-label">React Workspace</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </AnimateOnScroll>
+          </div>
+        </section>
+
+        {/* ================================================================
+          8. PRICING
           Transparent entry points for teams at different stages.
           ================================================================ */}
         <section className="section pricing-section" id="pricing">
@@ -638,7 +1047,7 @@ export default function LandingPage() {
         </section>
 
         {/* ================================================================
-          8. ENTERPRISE COMPLIANCE & SECURITY BANNER
+          9. ENTERPRISE COMPLIANCE & SECURITY BANNER
           ================================================================ */}
         <section style={{ background: "var(--bg-secondary)", padding: "4rem 0", borderTop: "var(--border-comic)" }}>
           <div className="container" style={{ textAlign: "center" }}>

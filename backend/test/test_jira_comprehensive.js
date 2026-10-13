@@ -18,7 +18,7 @@ const TEST_USERS = [
     { name: 'Shweta', accountId: '712020:f4133ad3-9b22-491e-8260-37d3ce9dcf04' },
     { name: 'Maitri', accountId: '712020:88eb9ecb-d9f0-40ee-a5d0-9cbe35c6ac8f' },
     { name: 'Ojasvi', accountId: '712020:27f806c7-3623-4153-bb5b-0f60bb121dec' },
-    { name: 'Samarth', accountId: '712020:a0876b3e-cc7b-403e-8aac-a8929a1c080e' }
+    { name: 'Riya', accountId: '712020:a0876b3e-cc7b-403e-8aac-a8929a1c080e' }
 ];
 
 // MongoDB Connection

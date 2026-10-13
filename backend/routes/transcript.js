@@ -11,7 +11,7 @@ const TEAM = [
     { name: 'Shweta', accountId: '712020:f4133ad3-9b22-491e-8260-37d3ce9dcf04', role: 'AWS Solutions Architect' },
     { name: 'Maitri', accountId: '712020:88eb9ecb-d9f0-40ee-a5d0-9cbe35c6ac8f', role: 'AWS Backend Developer' },
     { name: 'Ojasvi', accountId: '712020:27f806c7-3623-4153-bb5b-0f60bb121dec', role: 'AWS DevOps Engineer' },
-    { name: 'Samarth', accountId: '712020:a0876b3e-cc7b-403e-8aac-a8929a1c080e', role: 'AWS Cloud Engineer' }
+    { name: 'Riya', accountId: '712020:a0876b3e-cc7b-403e-8aac-a8929a1c080e', role: 'AWS Cloud Engineer' }
 ];
 
 // Map assignee name to team member
@@ -29,12 +29,12 @@ function mapRoleToTeamMember(roleRequired) {
         'backend': 'Maitri',
         'frontend': 'Shweta',
         'devops': 'Ojasvi',
-        'qa': 'Samarth',
-        'infrastructure': 'Samarth',
-        'cloud': 'Samarth',
+        'qa': 'Riya',
+        'infrastructure': 'Riya',
+        'cloud': 'Riya',
         'api': 'Maitri',
         'ui': 'Shweta',
-        'security': 'Samarth'
+        'security': 'Riya'
     };
 
     const normalizedRole = roleRequired?.toLowerCase() || '';
@@ -424,7 +424,7 @@ router.post('/create-jira-tasks', async (req, res) => {
           } else if (skillStr.includes('devops') || skillStr.includes('docker') || skillStr.includes('ci')) {
             assignee = TEAM.find(m => m.name === 'Ojasvi');
           } else {
-            assignee = TEAM.find(m => m.name === 'Samarth');
+            assignee = TEAM.find(m => m.name === 'Riya');
           }
         }
         if (!assignee) assignee = TEAM[0];

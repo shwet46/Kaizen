@@ -75,8 +75,8 @@ const CORE_TEAM = [
         jiraAccountId: '712020:27f806c7-3623-4153-bb5b-0f60bb121dec'
     },
     { 
-        firstName: 'Samarth',
-        lastName: 'Bhandavale',
+        firstName: 'Riya',
+        lastName: 'Sharma',
         role: 'AWS Cloud Engineer',
         department: 'Cloud Engineering',
         team: 'AWS Team',

@@ -81,8 +81,8 @@ MOCK_TEAM_MEMBERS = {
             ]
         }
     },
-    'samarth': {
-        'name': 'Samarth',
+    'riya': {
+        'name': 'Riya',
         'role': 'AWS Cloud Engineer',
         'jira': {
             'total_tickets': 7,
