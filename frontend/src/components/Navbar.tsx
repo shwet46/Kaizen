@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 const navLinks = [
   { label: "Features", href: "#features" },
   { label: "How it Works", href: "#how-it-works" },
+  { label: "Tech Stack", href: "#tech-stack" },
   { label: "Pricing", href: "#pricing" },
   { label: "Dashboard", href: "/dashboard" },
   { label: "For Teams", href: "#personas" },

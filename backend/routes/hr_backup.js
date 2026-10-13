@@ -66,7 +66,7 @@ const normalizeNameForMatch = (name) => {
         .trim();
 };
 
-// Helper to check if names match (handles partial matches like "samarth" vs "Samarth Bhandavale")
+// Helper to check if names match (handles partial matches like "riya" vs "Riya Sharma")
 const namesMatch = (name1, name2) => {
     const n1 = normalizeNameForMatch(name1);
     const n2 = normalizeNameForMatch(name2);
