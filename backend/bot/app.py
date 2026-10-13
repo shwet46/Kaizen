@@ -73,13 +73,13 @@ def get_greeting():
         tickets_str = ', '.join(f'`{t}`' for t in active_tickets)
 
         greeting = (
-            f"### 👋 Welcome to **Kaizen Intelligence**\n\n"
+            f"### Welcome to **Kaizen Intelligence**\n\n"
             f"I am your live AI business delivery and engineering analytics copilot.\n\n"
             f"I monitor and analyze our live delivery pipeline in real-time:\n\n"
-            f"• **Sprint Velocity** — {completed_count} of {total_tickets} deliverables completed ({velocity_pct}% velocity)\n"
-            f"• **Active Engineers** — {engineers_str}\n"
-            f"• **Jira & GitHub** — Active tickets ({tickets_str}), {total_commits} commits, and {blockers_text}\n"
-            f"• **AWS Architecture** — Multi-Tier VPC, EKS Kubernetes, Aurora Postgres & Redis\n\n"
+            # f"• **Sprint Velocity** — {completed_count} of {total_tickets} deliverables completed ({velocity_pct}% velocity)\n"
+            # f"• **Active Engineers** — {engineers_str}\n"
+            # f"• **Jira & GitHub** — Active tickets ({tickets_str}), {total_commits} commits, and {blockers_text}\n"
+            # f"• **AWS Architecture** — Multi-Tier VPC, EKS Kubernetes, Aurora Postgres & Redis\n\n"
             f"💡 *Type your question below or click the microphone to dictate with Speech-to-Text.*"
         )
 
@@ -139,11 +139,7 @@ def get_suggestions():
             "query": "Are there any blockers?",
             **colors[3]
         })
-        suggestions.append({
-            "label": "Tech Stack & AWS",
-            "query": "What is our tech stack?",
-            **colors[1]
-        })
+
 
         return jsonify({'suggestions': suggestions})
 

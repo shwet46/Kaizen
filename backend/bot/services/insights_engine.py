@@ -241,19 +241,13 @@ Format your responses using clear markdown:
             if is_hindi:
                 return (
                     "### 👋 नमस्ते! मैं **Kaizen Intelligence** हूं।\n\n"
-                    "मैं आपकी टीम की डिलीवरी और इंजीनियरिंग मेट्रिक्स का लाइव विश्लेषण कर सकता हूं:\n\n"
-                    "• **टीम परफॉरमेंस:** 34 में से 26 टास्क पूरे (76.5% वेलोसिटी)\n"
-                    "• **इंजीनियर्स:** Shweta, Maitri, Ojasvi, Samarth का रियल-टाइम स्टेटस\n"
-                    "• **Jira & GitHub:** एक्टिव टिकट्स, कमिट्स और डिलीवरी टाइमलाइन\n\n"
+                    "मैं आपकी टीम की डिलीवरी और इंजीनियरिंग मेट्रिक्स का लाइव विश्लेषण कर सकता हूं।\n\n"
                     "💡 *आप नीचे दिया गया कोई सवाल चुन सकते हैं या सीधे माइक्रोफोन पर बोल सकते हैं।*"
                 )
             return (
                 "### 👋 Hello! I am **Kaizen Intelligence**.\n\n"
-                "Your real-time engineering delivery and business insights copilot. Here is a quick snapshot of what I can help with:\n\n"
-                "• **Team Velocity:** 26 of 34 sprint deliverables completed (76.5% velocity)\n"
-                "• **Active Engineers:** Shweta (AWS Arch), Maitri (Backend), Ojasvi (DevOps), Samarth (Cloud DB)\n"
-                "• **Sprint Tracking:** Active Jira tickets (`KAN-103`, `KAN-105`), 184 GitHub commits, and blocker detection\n\n"
-                "💡 *Type a question or tap the microphone to ask about anyone's status, velocity, or delivery risks.*"
+                "Your real-time engineering delivery and business insights copilot.\n\n"
+                "💡 *Type a question or tap the microphone to ask about your project.*"
             )
 
         # Gratitude
@@ -293,14 +287,14 @@ Format your responses using clear markdown:
             return (
                 "### 🤖 Kaizen Intelligence Capabilities\n\n"
                 "I am your autonomous **Engineering Delivery Copilot & Business Insights Assistant** for engineering leadership:\n\n"
-                "• **Live Jira Sprint Audits:** Real-time visibility into sprint velocity (76.5%), individual tickets (`KAN-101` through `KAN-112`), statuses, priorities, and deadlines\n"
-                "• **GitHub Codebase Analytics:** Telemetry across **184 total commits** (+13,230 lines added), author rankings, and recent merge logs\n"
-                "• **Engineer Workstream Tracking:** Deep visibility into our active engineering team:\n"
-                "  - **Shweta** *(AWS Solutions Architect)*: Multi-Tier VPC, CloudFront edge distribution & WAF\n"
-                "  - **Maitri** *(AWS Backend Developer)*: FastAPI async endpoints, Celery workers & AWS SQS\n"
-                "  - **Ojasvi** *(AWS DevOps Engineer)*: GitHub Actions CI/CD pipelines & AWS EKS Kubernetes\n"
-                "  - **Samarth** *(AWS Cloud Engineer)*: Aurora PostgreSQL Multi-AZ & ElastiCache Redis cluster\n"
-                "• **Delivery Risk & Blocker Assessment:** Continuous monitoring of queue latencies, cross-region backups, and milestone forecasts\n"
+                # "• **Live Jira Sprint Audits:** Real-time visibility into sprint velocity (76.5%), individual tickets (`KAN-101` through `KAN-112`), statuses, priorities, and deadlines\n"
+                # "• **GitHub Codebase Analytics:** Telemetry across **184 total commits** (+13,230 lines added), author rankings, and recent merge logs\n"
+                # "• **Engineer Workstream Tracking:** Deep visibility into our active engineering team:\n"
+                # "  - **Shweta** *(AWS Solutions Architect)*: Multi-Tier VPC, CloudFront edge distribution & WAF\n"
+                # "  - **Maitri** *(AWS Backend Developer)*: FastAPI async endpoints, Celery workers & AWS SQS\n"
+                # "  - **Ojasvi** *(AWS DevOps Engineer)*: GitHub Actions CI/CD pipelines & AWS EKS Kubernetes\n"
+                # "  - **Samarth** *(AWS Cloud Engineer)*: Aurora PostgreSQL Multi-AZ & ElastiCache Redis cluster\n"
+                # "• **Delivery Risk & Blocker Assessment:** Continuous monitoring of queue latencies, cross-region backups, and milestone forecasts\n"
                 "• **Voice-Enabled Interaction:** Real-time speech transcription & Google Cloud natural speech synthesis\n\n"
                 "💡 *Ask me: 'What is Shweta working on?', 'Tell me about KAN-108', or 'How is our velocity?'*"
             )
@@ -987,20 +981,14 @@ Format your responses using clear markdown:
         if is_hindi:
             return (
                 "### 💡 Kaizen AI डिलीवरी इनसाइट्स\n\n"
-                "लाइव प्रोजेक्ट और इंजीनियरिंग डिलीवरी डेटा का विश्लेषण:\n\n"
-                f"• **प्रोजेक्ट स्टेटस:** 34 में से 26 कार्य पूरे ({completion_rate:.1f}% पूर्णता)\n"
-                f"• **एक्टिव इंजीनियर्स:** Shweta (AWS), Maitri (Backend), Ojasvi (DevOps), Samarth (Cloud DB)\n"
-                f"• **कमिट्स वॉल्यूम:** 184 GitHub कमिट्स सक्रिय रूप से दर्ज हैं{topic_bullet}\n\n"
-                "💡 **सलाह:** आप किसी विशेष इंजीनियर (Shweta, Maitri, Ojasvi, Samarth), Jira टिकट (`KAN-101`), या टीम वेलोसिटी के बारे में पूछ सकते हैं।"
+                "आपके सवाल के आधार पर लाइव प्रोजेक्ट और इंजीनियरिंग डिलीवरी डेटा का विश्लेषण कर रहा हूं।\n\n"
+                f"💡 **सलाह:** किसी विशेष प्रोजेक्ट विषय के बारे में सवाल पूछें।{topic_bullet}"
             )
 
         return (
             "### 💡 Kaizen AI Delivery Insights\n\n"
-            "Analyzing real-time engineering telemetry and Jira deliverables:\n\n"
-            f"• **Sprint Velocity:** **{completed_tasks} of {total_tasks} deliverables completed** ({completion_rate:.1f}% velocity rate)\n"
-            f"• **Engineering Capacity:** 4 specialized engineers active with **184 total GitHub commits**\n"
-            f"• **Active Focus Areas:** CloudFront edge caching, Celery SQS workers, Prometheus alerts, and RDS backups{topic_bullet}\n\n"
-            "💡 **Actionable Guidance:** You can query specific deliverables (`KAN-101` through `KAN-112`), individual team members (Shweta, Maitri, Ojasvi, Samarth), or request executive summaries."
+            "Analyzing real-time engineering telemetry and Jira deliverables for your question.\n\n"
+            f"💡 **Actionable Guidance:** Ask about a specific project topic.{topic_bullet}"
         )
 
 

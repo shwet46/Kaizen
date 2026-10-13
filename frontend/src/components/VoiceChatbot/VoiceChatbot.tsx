@@ -111,7 +111,7 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
                 // Fallback if backend is unreachable
                 addMessage(
                     'assistant',
-                    '### 👋 Welcome to **Kaizen Intelligence**\n\nI am your live AI business delivery and engineering analytics copilot.\n\n💡 *Type your question below or click the microphone to get started.*'
+                    '### Welcome to **Kaizen Intelligence**\n\nI am your live AI business delivery and engineering analytics copilot.\n\n💡 *Type your question below or click the microphone to get started.*'
                 );
             })
             .finally(() => setGreetingLoading(false));
