@@ -297,15 +297,15 @@ const FilterToggle = ({ label, checked, onChange, count, color, icon }: FilterTo
     whileTap={{ scale: 0.98 }}
     className={`flex items-center gap-3 p-3 border-2 transition-all w-full ${
       checked 
-        ? 'border-border bg-foreground text-background' 
-        : 'border-border hover:border-muted-foreground'
+        ? 'border-[#AEBBC9] bg-[#D9E0E8] text-[#26364A]' 
+        : 'border-[#CBD5E1] bg-[#EEF2F6] text-[#526174] hover:border-[#9AA9BA] hover:bg-[#E4EAF0]'
     }`}
   >
     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
     <span className="flex-1 text-left font-mono text-xs uppercase tracking-wider">{label}</span>
     {icon}
     {count !== undefined && (
-      <span className={`text-xs font-mono ${checked ? 'text-background/70' : 'text-muted-foreground'}`}>
+      <span className={`text-xs font-mono ${checked ? 'text-[#526174]' : 'text-[#7A8796]'}`}>
         {count}
       </span>
     )}
@@ -902,7 +902,7 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: -320, opacity: 0 }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="fixed md:relative left-0 top-0 md:top-auto h-full w-72 sm:w-80 shrink-0 border-r-2 border-border bg-background p-4 overflow-y-auto z-30 md:z-10"
+                className="graph-floating-panel fixed md:absolute left-3 right-3 md:right-auto top-3 bottom-3 md:top-4 md:bottom-4 h-auto w-auto md:w-72 lg:w-80 shrink-0 border border-[#C9D6E4] bg-[#F7FAFD]/95 p-5 overflow-y-auto z-30 md:z-10 text-[#26364A] shadow-[0_14px_35px_rgba(51,73,99,0.16)] backdrop-blur-md"
               >
                 {/* Close button for mobile */}
                 <button
@@ -912,7 +912,7 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
                   <X className="w-4 h-4" />
                 </button>
               {/* Search */}
-              <motion.div {...slideUp} transition={{ delay: 0.1 }} className="mb-6">
+              <motion.div {...slideUp} transition={{ delay: 0.1 }} className="mb-7">
                 <label className="block text-[10px] font-mono uppercase tracking-widest text-muted-foreground mb-2">
                   Search & Focus
                 </label>
@@ -931,7 +931,7 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
                         setShowSearchResults(true)
                       }
                     }}
-                    className="w-full pl-10 pr-4 py-2.5 bg-background rounded-lg border border-border/80 focus:border-[#4285F4] focus:ring-1 focus:ring-[#4285F4] outline-none font-mono text-sm transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white rounded-lg border border-[#CBD7E5] focus:border-[#4285F4] focus:ring-1 focus:ring-[#4285F4] outline-none font-mono text-sm transition-all"
                   />
                   
                   {/* Search Results Dropdown */}
@@ -1118,7 +1118,7 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
         </AnimatePresence>
 
         {/* Main Graph Area */}
-        <main className="flex-1 relative bg-background">
+        <main className="flex-1 relative bg-[#E8EEF5]">
           <ForceGraph3D
             ref={graphRef}
             graphData={filteredData}
@@ -1131,7 +1131,7 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
             linkOpacity={0.7}
             onNodeClick={handleNodeClick}
             onBackgroundClick={handleBackgroundClick}
-            backgroundColor="#fafafa"
+            backgroundColor="#E8EEF5"
             showNavInfo={false}
             enableNodeDrag={true}
             enableNavigationControls={true}
@@ -1189,7 +1189,7 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
                 animate={{ x: 0, opacity: 1 }}
                 exit={{ x: 320, opacity: 0 }}
                 transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="fixed md:relative right-0 top-0 md:top-auto h-full w-72 sm:w-80 shrink-0 border-l-2 border-border bg-background p-4 overflow-y-auto z-30 md:z-10"
+                className="graph-floating-panel fixed md:absolute left-3 right-3 md:left-auto top-3 bottom-3 md:top-4 md:bottom-4 h-auto w-auto md:w-72 lg:w-80 shrink-0 border border-[#C9D6E4] bg-[#F7FAFD]/95 p-5 overflow-y-auto z-30 md:z-10 text-[#26364A] shadow-[0_14px_35px_rgba(51,73,99,0.16)] backdrop-blur-md"
               >
                 {/* Close button for mobile */}
                 <button
