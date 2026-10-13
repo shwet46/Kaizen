@@ -690,8 +690,8 @@
   .workflow-section {
     width: 100%;
     margin-left: 0;
-    background: #f8fbff;
-    border-top: var(--border-comic);
+    background: linear-gradient(180deg, #f7faff 0%, #f1f6fb 100%);
+    border-top: 1px solid #dce6f0;
     overflow: hidden;
   }
 
@@ -717,31 +717,56 @@
   }
 
   .workflow-step {
-    min-height: 270px;
-    padding: var(--space-xl);
-    background: #FFFFFF;
-    border: var(--border-light);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-soft);
+    min-height: 280px;
+    padding: 28px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid #d9e3ed;
+    border-radius: 18px;
+    box-shadow: 0 10px 28px rgba(35, 61, 88, 0.07);
     position: relative;
     overflow: hidden;
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+  }
+
+  .workflow-step:hover {
+    transform: translateY(-5px);
+    border-color: #b9cadb;
+    box-shadow: 0 16px 34px rgba(35, 61, 88, 0.12);
   }
 
   .workflow-step-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--space-2xl);
+    margin-bottom: 42px;
   }
 
   .workflow-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 42px;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid #d5e0eb;
+    border-radius: 999px;
+    background: #f4f8fc;
     font-family: 'JetBrains Mono', monospace;
     font-size: var(--text-xs);
-    color: var(--text-tertiary);
+    color: #60758a;
+    font-weight: 600;
     letter-spacing: 0.08em;
   }
 
   .workflow-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    border: 1px solid #dce6f0;
+    border-radius: 12px;
+    background: #f7faff;
     font-size: var(--text-2xl);
   }
 
@@ -756,6 +781,7 @@
     color: var(--text-secondary);
     font-size: var(--text-sm);
     line-height: 1.65;
+    max-width: 34rem;
   }
 
   .workflow-line {
@@ -763,14 +789,15 @@
     left: 0;
     right: 0;
     bottom: 0;
-    height: 4px;
+    height: 3px;
     transform: scaleX(calc(0.7 + (var(--scroll-progress) * 0.3)));
     transform-origin: left;
     transition: transform 300ms ease-out;
   }
 
   .pricing-section {
-    background: var(--bg-primary);
+    background: #ffffff;
+    border-top: 1px solid #e5ebf1;
   }
 
   .pricing-heading {
@@ -788,27 +815,29 @@
   }
 
   .pricing-card {
-    background: #FFFFFF;
-    border: var(--border-light);
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-soft);
-    padding: var(--space-xl);
-    min-height: 490px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    border: 1px solid #dce5ee;
+    border-radius: 18px;
+    box-shadow: 0 10px 28px rgba(35, 61, 88, 0.07);
+    padding: 30px;
+    min-height: 510px;
     display: flex;
     flex-direction: column;
     position: relative;
     overflow: hidden;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
   }
 
   .pricing-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-soft-lg);
+    transform: translateY(-6px);
+    border-color: #b9cadb;
+    box-shadow: 0 18px 38px rgba(35, 61, 88, 0.13);
   }
 
   .pricing-card-featured {
-    border: 2px solid var(--accent-mint);
-    box-shadow: var(--shadow-soft-lg);
+    border: 2px solid #56b878;
+    background: linear-gradient(180deg, #fbfffc 0%, #f4fbf6 100%);
+    box-shadow: 0 16px 38px rgba(52, 168, 83, 0.14);
     transform: scale(1.02);
   }
 
@@ -820,18 +849,20 @@
     position: absolute;
     top: 18px;
     right: 18px;
-    color: #137333;
-    background: var(--accent-mint-light);
+    color: #176b38;
+    background: #e9f7ed;
+    border: 1px solid #b9e2c4;
     border-radius: 999px;
-    padding: 5px 10px;
+    padding: 6px 11px;
     font-size: var(--text-xs);
     font-weight: 700;
+    letter-spacing: 0.02em;
   }
 
   .pricing-card-accent {
-    width: 44px;
-    height: 4px;
-    border-radius: 4px;
+    width: 48px;
+    height: 5px;
+    border-radius: 999px;
     margin-bottom: var(--space-xl);
   }
 
@@ -862,7 +893,7 @@
     font-family: 'Instrument Serif', serif;
     font-size: var(--text-4xl);
     line-height: 1;
-    margin: var(--space-xl) 0 5px;
+    margin: 28px 0 5px;
   }
 
   .pricing-cadence {
@@ -873,10 +904,10 @@
   .pricing-features {
     display: grid;
     gap: 12px;
-    padding: var(--space-xl) 0;
-    margin: var(--space-xl) 0;
-    border-top: var(--border-light);
-    border-bottom: var(--border-light);
+    padding: 22px 0;
+    margin: 24px 0;
+    border-top: 1px solid #e1e8ef;
+    border-bottom: 1px solid #e1e8ef;
     color: var(--text-secondary);
     font-size: var(--text-sm);
   }
@@ -885,6 +916,7 @@
     display: flex;
     align-items: center;
     gap: 9px;
+    line-height: 1.4;
   }
 
   .pricing-cta {

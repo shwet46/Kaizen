@@ -125,7 +125,7 @@ router.post('/apply-updates', async (req, res) => {
       });
     }
 
-    const employeeDataPath = path.resolve(__dirname, '../../employee_data.json');
+    const employeeDataPath = path.resolve(__dirname, '../employee_data.json');
     const changesApplied = applyEmployeeUpdates(updates, employeeDataPath);
 
     res.json({

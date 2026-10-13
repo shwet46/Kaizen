@@ -7,7 +7,7 @@
 @layer base {
   :root {
     --bg-primary: #FAFAFA;
-    --bg-secondary: #F3F4F6;
+    --bg-secondary: #EEF2F6;
     --bg-tertiary: #E8F0FE;
     --bg-card: #FAFAFA;
     --bg-dark: #202124;
@@ -205,6 +205,8 @@
   }
 
   .dashboard-page {
+    --background: 214 32% 96%;
+    --card: 0 0% 100%;
     min-width: 0;
     overflow-x: hidden;
     background-color: var(--bg-secondary);
@@ -357,4 +359,30 @@
 
 .dashboard-page [class*="shadow-["]:hover {
   box-shadow: 3px 3px 0px rgba(95, 99, 104, 0.18) !important;
+}
+
+/* Keep graph controls as floating cards over the canvas with squared corners. */
+.dashboard-page .graph-floating-panel {
+  border-radius: 0 !important;
+  box-shadow: 0 14px 35px rgba(51, 73, 99, 0.16) !important;
+  scrollbar-color: #ffffff transparent;
+  scrollbar-width: thin;
+}
+
+.dashboard-page .graph-floating-panel::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dashboard-page .graph-floating-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-page .graph-floating-panel::-webkit-scrollbar-thumb {
+  background: #ffffff;
+  border: 1px solid rgba(201, 214, 228, 0.8);
+  border-radius: 0;
+}
+
+.dashboard-page .graph-floating-panel::-webkit-scrollbar-thumb:hover {
+  background: #ffffff;
 }

@@ -303,7 +303,7 @@ async function processTranscript(transcriptPath) {
   const meetingDoc = generateMeetingDoc(analysis, participantData);
 
   // Load employee data
-  const employeeDataPath = path.join(__dirname, '../../employee_data.json');
+  const employeeDataPath = path.join(__dirname, '../employee_data.json');
   let employeeData = {};
   try {
     employeeData = JSON.parse(fs.readFileSync(employeeDataPath, 'utf-8'));
