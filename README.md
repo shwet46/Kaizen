@@ -2,15 +2,15 @@
   <img src="assets/readme1.png" alt="Kaizen - Turning Engineering Signals into Business Clarity" width="100%" />
 </p>
 
-# Kaizen Intelligence Platform
 
 Kaizen is an enterprise engineering intelligence platform that turns GitHub, Jira, workforce, finance, and delivery telemetry into an operating view for project managers, engineering leaders, finance teams, and HR.
 
-The repository contains a React/Vite dashboard, an Express API, MongoDB-backed domain services, an optional Neo4j knowledge graph integration, and an optional Python voice assistant.
 
 <p align="center">
   <img src="assets/readme2.png" alt="Kaizen Intelligence Platform Preview" width="100%" />
 </p>
+
+---
 
 ## Highlights
 
@@ -38,7 +38,7 @@ The repository contains a React/Vite dashboard, an Express API, MongoDB-backed d
 ```mermaid
 flowchart LR
 	User[ User]
-	Client[React]
+	Client[React \n dashboard]
 	API[Express API]
 	Mongo[(MongoDB)]
 	Neo4j[(Neo4j graph store)]
