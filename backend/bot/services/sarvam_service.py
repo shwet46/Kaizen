@@ -35,6 +35,8 @@ class SarvamService:
             ])
         
         search_paths.extend([
+            '/etc/secrets/gcloud-service-account.json',
+            '/etc/secrets/google-credentials.json',
             os.path.join(bot_dir, 'gcloud-service-account.json'),
             os.path.join(root_dir, 'gcloud-service-account.json'),
             os.path.join(os.getcwd(), 'gcloud-service-account.json')
@@ -46,10 +48,25 @@ class SarvamService:
                 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = abs_path
                 return abs_path
 
-        print("Warning: gcloud-service-account.json not found. STT/TTS will fail.")
         return None
 
     def _get_creds(self):
+        # 1. Check for raw JSON string in environment variable (Render friendly)
+        raw_json = (
+            os.getenv('GOOGLE_APPLICATION_CREDENTIALS_JSON')
+            or os.getenv('GOOGLE_CREDENTIALS_JSON')
+            or os.getenv('GCLOUD_SERVICE_ACCOUNT_JSON')
+        )
+        if raw_json:
+            try:
+                import json
+                from google.oauth2 import service_account
+                info = json.loads(raw_json)
+                return service_account.Credentials.from_service_account_info(info)
+            except Exception as e:
+                print(f"Error parsing Google credentials from JSON env: {e}")
+
+        # 2. Check resolved secret file path
         cred_path = self._resolve_credentials()
         if cred_path and os.path.exists(cred_path):
             try:

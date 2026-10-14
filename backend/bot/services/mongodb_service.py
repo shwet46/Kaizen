@@ -120,9 +120,9 @@ class MongoDBService:
                 self.client = MongoClient(
                     mongo_uri,
                     tlsAllowInvalidCertificates=True,
-                    serverSelectionTimeoutMS=2000,
-                    connectTimeoutMS=2000,
-                    socketTimeoutMS=2000
+                    serverSelectionTimeoutMS=5000,
+                    connectTimeoutMS=5000,
+                    socketTimeoutMS=5000
                 )
                 # Quick ping to verify connectivity
                 self.client.admin.command('ping')

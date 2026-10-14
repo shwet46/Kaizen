@@ -1,0 +1,115 @@
+# ============================================================
+# Render Blueprint Specification for Kaizen
+# Deploy with 1-Click via Render Dashboard -> "Blueprints"
+# ============================================================
+
+services:
+  # ----------------------------------------------------------
+  # 1. Kaizen Node.js / Express Backend API
+  # ----------------------------------------------------------
+  - type: web
+    name: kaizen-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FRONTEND_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/gcloud-service-account.json
+      - key: GOOGLE_APPLICATION_CREDENTIALS_JSON
+        sync: false
+      - key: GOOGLE_CLOUD_PROJECT_ID
+        sync: false
+      - key: JIRA_BASE_URL
+        sync: false
+      - key: JIRA_PROJECT_KEY
+        sync: false
+      - key: JIRA_EMAIL
+        sync: false
+      - key: JIRA_API_TOKEN
+        sync: false
+      - key: GITHUB_DEFAULT_REPO
+        sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CALLBACK_URL
+        sync: false
+      - key: NEO4J_URI
+        sync: false
+      - key: NEO4J_USER
+        sync: false
+      - key: NEO4J_PASSWORD
+        sync: false
+
+  # ----------------------------------------------------------
+  # 2. Kaizen Python Voice & Intelligence Bot Backend
+  # ----------------------------------------------------------
+  - type: web
+    name: kaizen-bot
+    env: python
+    plan: free
+    rootDir: backend/bot
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: BOT_PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /etc/secrets/gcloud-service-account.json
+      - key: GOOGLE_APPLICATION_CREDENTIALS_JSON
+        sync: false
+      - key: GOOGLE_CLOUD_PROJECT_ID
+        sync: false
+
+  # ----------------------------------------------------------
+  # 3. Kaizen React / Vite Frontend (Optional Static Site)
+  # ----------------------------------------------------------
+  - type: static
+    name: kaizen-frontend
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: kaizen-backend
+          property: url
+      - key: VITE_VOICE_CHATBOT_API
+        fromService:
+          type: web
+          name: kaizen-bot
+          property: url

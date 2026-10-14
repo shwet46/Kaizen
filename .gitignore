@@ -5,6 +5,10 @@ frontend/node_modules/
 client/node_modules/
 backend/node_modules/
 bot/.venv/
+backend/bot/.venv/
+.venv/
+__pycache__/
+*.py[cod]
 
 # testing
 /coverage
@@ -32,6 +36,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+!.env*.example
 
 # vercel
 .vercel

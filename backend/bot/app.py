@@ -19,6 +19,8 @@ if sys.platform == 'win32':
 # Load environment variables from bot directory and root directory
 bot_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(bot_dir)
+if bot_dir not in sys.path:
+    sys.path.insert(0, bot_dir)
 load_dotenv(os.path.join(bot_dir, '.env'))
 load_dotenv(os.path.join(root_dir, '.env'))
 
@@ -30,6 +32,22 @@ from services.insights_engine import InsightsEngine
 # Initialize Flask app
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend
+
+# Top-level Health endpoints for Render deployment monitoring
+@app.route('/', methods=['GET'])
+def root():
+    return jsonify({
+        'service': 'Kaizen Voice Intelligence Bot API',
+        'status': 'online',
+        'version': '1.0.0'
+    })
+
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({
+        'status': 'healthy',
+        'service': 'kaizen-bot'
+    })
 
 # Initialize services
 sarvam_service = SarvamService()
@@ -392,13 +410,13 @@ def internal_error(error):
 # ============= MAIN =============
 
 if __name__ == '__main__':
-    port = int(os.getenv('BOT_PORT', 5001))
+    port = int(os.getenv('PORT') or os.getenv('BOT_PORT', 5001))
     debug = os.getenv('FLASK_ENV') == 'development'
     
     print("=" * 60)
     print("  VOICE CHATBOT BACKEND - STARTING")
     print("=" * 60)
-    print(f"  Server running on: http://localhost:{port}")
+    print(f"  Server running on port: {port}")
     print(f"  Google Cloud STT/TTS: Enabled")
     print(f"  MongoDB: Connected")
     print(f"  Insights Engine: Ready")

@@ -37,10 +37,17 @@ router.use('/chat', require('./chat'));
 // Health: include DB check
 router.get('/health', async (req, res) => {
   try {
-    await mongoose.connection.db.admin().ping();
-    res.json({ status: 'ok', db: 'connected' });
+    const isDbConnected = mongoose.connection.readyState === 1 && mongoose.connection.db;
+    if (isDbConnected) {
+      await mongoose.connection.db.admin().ping();
+      return res.status(200).json({ status: 'ok', db: 'connected' });
+    }
+    return res.status(200).json({
+      status: 'ok',
+      db: mongoose.connection.readyState === 2 ? 'connecting' : 'disconnected',
+    });
   } catch (err) {
-    res.status(503).json({ status: 'degraded', db: 'disconnected', error: err.message });
+    return res.status(200).json({ status: 'degraded', db: 'error', error: err.message });
   }
 });
 

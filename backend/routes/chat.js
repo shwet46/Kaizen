@@ -6,14 +6,51 @@ const Issue = require('../models/Issue');
 const User = require('../models/User');
 const Sprint = require('../models/Sprint');
 
+const fs = require('fs');
+const path = require('path');
+
 // Google Cloud Speech clients (lazy-loaded)
 let speechClient = null;
 let ttsClient = null;
 
+function getGcpClientConfig() {
+    // 1. Direct credentials JSON via environment variable (ideal for Render env vars)
+    const rawJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON || 
+                    process.env.GOOGLE_CREDENTIALS_JSON || 
+                    process.env.GCLOUD_SERVICE_ACCOUNT_JSON;
+    if (rawJson) {
+        try {
+            return { credentials: JSON.parse(rawJson) };
+        } catch (e) {
+            console.warn('Failed to parse Google credentials from JSON env:', e.message);
+        }
+    }
+
+    // 2. Secret file or local path candidates
+    const candidatePaths = [
+        process.env.GOOGLE_APPLICATION_CREDENTIALS,
+        '/etc/secrets/gcloud-service-account.json',
+        '/etc/secrets/google-credentials.json',
+        path.join(__dirname, '../gcloud-service-account.json'),
+        path.join(__dirname, '../../gcloud-service-account.json'),
+        path.join(process.cwd(), 'gcloud-service-account.json')
+    ].filter(Boolean);
+
+    for (const p of candidatePaths) {
+        try {
+            if (fs.existsSync(p)) {
+                return { keyFilename: path.resolve(p) };
+            }
+        } catch (_) {}
+    }
+
+    return {};
+}
+
 function getSpeechClient() {
     if (!speechClient) {
         const speech = require('@google-cloud/speech');
-        speechClient = new speech.SpeechClient();
+        speechClient = new speech.SpeechClient(getGcpClientConfig());
     }
     return speechClient;
 }
@@ -21,7 +58,7 @@ function getSpeechClient() {
 function getTTSClient() {
     if (!ttsClient) {
         const textToSpeech = require('@google-cloud/text-to-speech');
-        ttsClient = new textToSpeech.TextToSpeechClient();
+        ttsClient = new textToSpeech.TextToSpeechClient(getGcpClientConfig());
     }
     return ttsClient;
 }
