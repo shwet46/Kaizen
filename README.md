@@ -1,8 +1,16 @@
+<p align="center">
+  <img src="assets/readme1.png" alt="Kaizen - Turning Engineering Signals into Business Clarity" width="100%" />
+</p>
+
 # Kaizen Intelligence Platform
 
 Kaizen is an enterprise engineering intelligence platform that turns GitHub, Jira, workforce, finance, and delivery telemetry into an operating view for project managers, engineering leaders, finance teams, and HR.
 
 The repository contains a React/Vite dashboard, an Express API, MongoDB-backed domain services, an optional Neo4j knowledge graph integration, and an optional Python voice assistant.
+
+<p align="center">
+  <img src="assets/readme2.png" alt="Kaizen Intelligence Platform Preview" width="100%" />
+</p>
 
 ## Highlights
 
@@ -16,22 +24,31 @@ The repository contains a React/Vite dashboard, an Express API, MongoDB-backed d
 - Meeting transcript extraction and task-to-Jira workflows
 - Optional voice-chatbot backend
 
+---
+
+<p align="center">
+  <img src="assets/readme3.png" alt="Kaizen Tech Stack" width="85%" />
+</p>
+
+---
+
+
 ## System Architecture
 
 ```mermaid
 flowchart LR
-	User[Browser User]
-	Client[React + Vite Dashboard\nclient/src]
-	API[Express API\nbackend/index.js]
+	User[ User]
+	Client[React]
+	API[Express API]
 	Mongo[(MongoDB)]
-	Neo4j[(Neo4j\noptional graph store)]
+	Neo4j[(Neo4j graph store)]
 	GitHub[GitHub API]
 	Jira[Jira API]
-	Gemini[Google Gemini\noptional LLM]
-	Voice[Python Voice Backend\noptional]
+	Gemini[Gemini LLM Intelligence]
+	Voice[Python Backend]
 
 	User --> Client
-	Client -->|/api via Vite proxy| API
+	Client -->|via Vite proxy| API
 	API --> Mongo
 	API --> Neo4j
 	API -->|OAuth, sync, webhooks| GitHub
@@ -45,19 +62,19 @@ flowchart LR
 
 ```text
 .
-├── client/                 React/Vite frontend
+├── frontend/               React/Vite dashboard & UI components
 │   ├── src/components/     Dashboard, landing, graph, and shared UI
 │   ├── src/pages/          Dashboard routes and landing page
 │   └── src/lib/            API, allocation, and LLM client services
-├── backend/                Express API and integrations
-│   ├── test/               Backend test and verification scripts
-│   ├── random/             One-off backend utilities and seed scripts
+├── backend/                Express API, domain services & integrations
+│   ├── bot/                Optional Python voice & AI service
 │   ├── config/             Database, environment, and Passport setup
 │   ├── models/             Mongoose domain models
 │   ├── routes/             API route modules
-│   └── services/           Allocation, ingestion, graph, Jira, and LLM services
-├── bot/                    Optional Python voice service
-├── employee_data.json      Sample employee data
+│   ├── services/           Allocation, ingestion, graph, Jira, and LLM services
+│   ├── test/               Backend test and verification scripts
+│   └── random/             Backend utilities and seed scripts
+├── assets/                 Visual assets & documentation media
 └── README.md
 ```
 
@@ -77,9 +94,11 @@ flowchart LR
 From the repository root:
 
 ```bash
-cd client
+# Frontend
+cd frontend
 npm install
 
+# Backend
 cd ../backend
 npm install
 ```
@@ -87,7 +106,7 @@ npm install
 For the optional voice service:
 
 ```bash
-cd ../bot
+cd bot
 python -m venv .venv
 
 # macOS/Linux
@@ -131,8 +150,8 @@ npm run dev
 ```
 
 ```bash
-# Terminal 2: frontend
-cd client
+# Terminal 2: Frontend
+cd frontend
 npm run dev
 ```
 
@@ -142,7 +161,7 @@ The optional voice backend can be started according to its `app.py` configuratio
 
 ## Available Commands
 
-### Client
+### Frontend
 
 ```bash
 npm run dev       # Start Vite development server
@@ -163,73 +182,10 @@ npm run seed:roles
 
 Seed commands require a reachable MongoDB instance and should be run only when you understand the data they insert.
 
-## Dashboard Routes
-
-The frontend exposes the following primary views:
-
-| Route | Purpose |
-| --- | --- |
-| `/` | Landing page and interactive product preview |
-| `/dashboard` | Project delivery overview |
-| `/dashboard/graph` | 3D knowledge graph |
-| `/dashboard/smart-allocate` | AI-assisted resource allocation |
-| `/dashboard/delay-prediction` | Delay and delivery-risk analysis |
-| `/dashboard/finance` | Finance and ROI reporting |
-| `/dashboard/roles` | Role and access management |
-| `/dashboard/allocation-simulation` | Allocation scenario modeling |
-| `/dashboard/meeting-transcript` | Transcript-to-task workflow |
-| `/dashboard/hr` | HR overview |
-| `/dashboard/hr/performance` | Employee performance analytics |
-| `/dashboard/hr/retention` | Retention-risk analysis |
-
-## API and Data Integrations
-
-The Express server organizes endpoints by domain under `backend/routes/`, including:
-
-- `allocation`, `smartAllocate`, and `simulation` for staffing workflows
-- `finance` and `insights` for reporting and intelligence
-- `fetch`, `sync`, `github`, `jira`, and `webhooks` for external data
-- `oauth` for GitHub authentication
-- `hr`, `roles`, and `tasks` for workforce and work management
-- `graph` for Neo4j-backed relationship views
-- `chat` and `transcript` for assistant and meeting workflows
-
-The frontend uses the `/api` prefix. Keep that prefix when adding client requests so local Vite proxying and production reverse-proxy rules remain consistent.
-
-## Development Notes
-
-- Keep dashboard-specific UI in `client/src/components` and `client/src/pages`.
-- Keep shared primitives in `client/src/components/ui`.
-- Add new API domains as isolated route modules under `backend/routes/`.
-- Put external-service logic in `backend/services/`, not directly in route handlers.
-- Use environment variables for credentials and deployment-specific URLs.
-- Run `npm run build` before opening a pull request; it runs TypeScript validation through `tsc -b` before Vite builds the bundle.
-
-## Troubleshooting
-
-### The dashboard cannot reach the API
-
-Confirm the API is running on port `8000`, the client is running on port `5173`, and the Vite proxy target in `client/vite.config.ts` matches the API port.
-
-### MongoDB connection errors
-
-Check `MONGODB_URI`, verify that MongoDB is running, and confirm that the selected database user has access to the database.
-
-### GitHub OAuth redirects incorrectly
-
-Set `GITHUB_CALLBACK_URL` to the callback registered in GitHub and set `FRONTEND_URL` to the URL where the frontend is running.
-
-### The knowledge graph is unavailable
-
-Neo4j is optional for the rest of the dashboard. Verify the Neo4j connection variables and graph service configuration before investigating frontend rendering.
-
-## Security
-
-- Never commit `.env` files, OAuth secrets, API keys, or JWT secrets.
-- Use a strong, randomly generated `JWT_SECRET` outside local development.
-- Restrict OAuth callback URLs to trusted environments.
-- Treat ingested GitHub, Jira, HR, and finance data as sensitive operational information.
+---
 
 ## License
 
-No project license is currently declared. Add an explicit license before distributing this repository outside its intended organization.
+This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE) file for the full license text.
+
+---
