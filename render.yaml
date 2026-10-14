@@ -9,7 +9,7 @@ services:
   # ----------------------------------------------------------
   - type: web
     name: kaizen-backend
-    env: node
+    runtime: node
     plan: free
     rootDir: backend
     buildCommand: npm install
@@ -65,7 +65,7 @@ services:
   # ----------------------------------------------------------
   - type: web
     name: kaizen-bot
-    env: python
+    runtime: python
     plan: free
     rootDir: backend/bot
     buildCommand: pip install -r requirements.txt
@@ -91,10 +91,11 @@ services:
         sync: false
 
   # ----------------------------------------------------------
-  # 3. Kaizen React / Vite Frontend (Optional Static Site)
+  # 3. Kaizen React / Vite Frontend (Static Site)
   # ----------------------------------------------------------
-  - type: static
+  - type: web
     name: kaizen-frontend
+    runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
@@ -104,12 +105,6 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: kaizen-backend
-          property: url
+        sync: false
       - key: VITE_VOICE_CHATBOT_API
-        fromService:
-          type: web
-          name: kaizen-bot
-          property: url
+        sync: false
