@@ -24,7 +24,14 @@ import {
   LiaTimesCircleSolid as XCircle
 } from "react-icons/lia"
 
-const API = import.meta.env.VITE_API_URL || "https://kaizen-backend-8x01.onrender.com/api"
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL.replace(/\/$/, '')
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:8000/api'
+  }
+  return 'https://kaizen-backend-8x01.onrender.com/api'
+}
+const API = getApiUrl()
 
 // --- Interfaces ---
 

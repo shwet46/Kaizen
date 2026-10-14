@@ -28,7 +28,60 @@ import {
   LiaLightbulbSolid as Lightbulb
 } from "react-icons/lia"
 
-const API = import.meta.env.VITE_API_URL || "https://kaizen-backend-8x01.onrender.com/api"
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/$/, '')
+  }
+  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:8000/api'
+  }
+  return 'https://kaizen-backend-8x01.onrender.com/api'
+}
+
+const API = getApiUrl()
+
+const DEMO_GRAPH_DATA: GraphData = {
+  nodes: [
+    { id: 'alice@kaizen.dev', type: 'developer', label: 'Alice Chen', name: 'Alice Chen', email: 'alice@kaizen.dev', role: 'Staff Engineer', team: 'Backend', hourly_rate: 95 },
+    { id: 'bob@kaizen.dev', type: 'developer', label: 'Bob Martin', name: 'Bob Martin', email: 'bob@kaizen.dev', role: 'Senior Frontend', team: 'Frontend', hourly_rate: 85 },
+    { id: 'carol@kaizen.dev', type: 'developer', label: 'Carol Wu', name: 'Carol Wu', email: 'carol@kaizen.dev', role: 'DevOps Lead', team: 'Platform', hourly_rate: 90 },
+    { id: 'dave@kaizen.dev', type: 'developer', label: 'Dave Kumar', name: 'Dave Kumar', email: 'dave@kaizen.dev', role: 'Fullstack Dev', team: 'Core', hourly_rate: 75 },
+    { id: 'c1a2b3', type: 'commit', label: 'feat: add 3D graph visualization', sha: 'c1a2b3', repo: 'Kaizen', additions: 350, deletions: 42 },
+    { id: 'c4d5e6', type: 'commit', label: 'fix: optimize force simulation layout', sha: 'c4d5e6', repo: 'Kaizen', additions: 120, deletions: 15 },
+    { id: 'c7f8a9', type: 'commit', label: 'perf: add neo4j driver pooling', sha: 'c7f8a9', repo: 'Kaizen', additions: 85, deletions: 20 },
+    { id: 'c0b1c2', type: 'commit', label: 'feat: intelligent resource allocation', sha: 'c0b1c2', repo: 'Kaizen', additions: 420, deletions: 30 },
+    { id: 'KZ-101', type: 'ticket', label: 'KZ-101', key: 'KZ-101', title: 'Knowledge Graph Visualization', status: 'In Progress', priority: 'High', story_points: 8 },
+    { id: 'KZ-102', type: 'ticket', label: 'KZ-102', key: 'KZ-102', title: 'Performance Optimization', status: 'Done', priority: 'Medium', story_points: 5 },
+    { id: 'KZ-103', type: 'ticket', label: 'KZ-103', key: 'KZ-103', title: 'Smart Allocation Pipeline', status: 'In Progress', priority: 'High', story_points: 13 },
+    { id: 'src/components/KnowledgeGraph3D.tsx', type: 'file', label: 'KnowledgeGraph3D.tsx', path: 'src/components/KnowledgeGraph3D.tsx', filename: 'KnowledgeGraph3D.tsx', language: 'TypeScript' },
+    { id: 'backend/services/neo4jClient.js', type: 'file', label: 'neo4jClient.js', path: 'backend/services/neo4jClient.js', filename: 'neo4jClient.js', language: 'JavaScript' },
+    { id: 'backend/routes/smartAllocate.js', type: 'file', label: 'smartAllocate.js', path: 'backend/routes/smartAllocate.js', filename: 'smartAllocate.js', language: 'JavaScript' },
+  ],
+  links: [
+    { source: 'alice@kaizen.dev', target: 'c7f8a9', type: 'AUTHORED' },
+    { source: 'bob@kaizen.dev', target: 'c1a2b3', type: 'AUTHORED' },
+    { source: 'bob@kaizen.dev', target: 'c4d5e6', type: 'AUTHORED' },
+    { source: 'dave@kaizen.dev', target: 'c0b1c2', type: 'AUTHORED' },
+    { source: 'c1a2b3', target: 'KZ-101', type: 'LINKED_TO' },
+    { source: 'c4d5e6', target: 'KZ-102', type: 'LINKED_TO' },
+    { source: 'c7f8a9', target: 'KZ-102', type: 'LINKED_TO' },
+    { source: 'c0b1c2', target: 'KZ-103', type: 'LINKED_TO' },
+    { source: 'c1a2b3', target: 'src/components/KnowledgeGraph3D.tsx', type: 'MODIFIED' },
+    { source: 'c4d5e6', target: 'src/components/KnowledgeGraph3D.tsx', type: 'MODIFIED' },
+    { source: 'c7f8a9', target: 'backend/services/neo4jClient.js', type: 'MODIFIED' },
+    { source: 'c0b1c2', target: 'backend/routes/smartAllocate.js', type: 'MODIFIED' },
+  ],
+  meta: {
+    nodeCount: 14,
+    linkCount: 12,
+    nodesByType: {
+      developers: 4,
+      commits: 4,
+      tickets: 3,
+      files: 3
+    }
+  }
+}
 
 // ============================================
 // TYPE DEFINITIONS
@@ -398,26 +451,62 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
   // DATA FETCHING
   // ============================================
 
-  const fetchStatus = useCallback(async () => {
+  const fetchWithTimeout = useCallback(async (url: string, options: RequestInit = {}, timeoutMs = 10000) => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
     try {
-      const res = await fetch(`${API}/graph/status`)
-      const data = await res.json()
-      setStatus(data)
-    } catch (err) {
-      console.error("Failed to fetch graph status:", err)
+      const res = await fetch(url, { ...options, signal: controller.signal })
+      clearTimeout(timer)
+      return res
+    } catch (err: any) {
+      clearTimeout(timer)
+      if (err.name === 'AbortError') {
+        throw new Error(`Connection timed out after ${timeoutMs / 1000}s. Server took too long to respond.`)
+      }
+      throw err
     }
   }, [])
+
+  const loadDemoData = useCallback(() => {
+    setGraphData(DEMO_GRAPH_DATA)
+    setGraphError(null)
+    setLoading(false)
+    setStatus({
+      status: 'connected',
+      message: 'Demo Knowledge Graph loaded',
+      features: ['Developer-Commit-Ticket relationships', 'File modification tracking'],
+      stats: {
+        nodeCount: DEMO_GRAPH_DATA.nodes.length,
+        relCount: DEMO_GRAPH_DATA.links.length,
+        labels: { Developer: 4, Commit: 4, Ticket: 3, File: 3 },
+        relTypes: { AUTHORED: 4, LINKED_TO: 4, MODIFIED: 4 }
+      }
+    })
+  }, [])
+
+  const fetchStatus = useCallback(async () => {
+    try {
+      const res = await fetchWithTimeout(`${API}/graph/status`, {}, 8000)
+      if (res.ok) {
+        const data = await res.json()
+        setStatus(data)
+      }
+    } catch (err) {
+      console.warn("Failed to fetch graph status:", err)
+    }
+  }, [fetchWithTimeout])
 
   const loadVisualization = useCallback(async () => {
     setLoading(true)
     setGraphError(null)
     try {
-      const res = await fetch(`${API}/graph/visualization?limit=${filters.nodeLimit}`)
+      const res = await fetchWithTimeout(`${API}/graph/visualization?limit=${filters.nodeLimit}`, {}, 10000)
       const data = await res.json()
 
       if (!res.ok || !Array.isArray(data.nodes) || !Array.isArray(data.links)) {
         setGraphData(null)
         setGraphError(data.message || data.error || "Knowledge graph is unavailable.")
+        setLoading(false)
         return
       }
       
@@ -432,20 +521,22 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
       
       setGraphData(data)
     } catch (err) {
+      console.warn("Graph visualization fetch failed:", err)
       setGraphData(null)
       setGraphError(err instanceof Error ? err.message : "Knowledge graph is unavailable.")
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
-  }, [filters.nodeLimit])
+  }, [filters.nodeLimit, fetchWithTimeout])
 
   const fetchInsights = useCallback(async () => {
     setLoadingInsights(true)
     try {
       const [silosRes, burnoutRes, costsRes, velocityRes] = await Promise.all([
-        fetch(`${API}/graph/insights/silos`).then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch(`${API}/graph/insights/burnout-risk`).then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch(`${API}/graph/insights/hidden-costs`).then(r => r.ok ? r.json() : null).catch(() => null),
-        fetch(`${API}/graph/insights/ticket-velocity`).then(r => r.ok ? r.json() : null).catch(() => null)
+        fetchWithTimeout(`${API}/graph/insights/silos`, {}, 8000).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetchWithTimeout(`${API}/graph/insights/burnout-risk`, {}, 8000).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetchWithTimeout(`${API}/graph/insights/hidden-costs`, {}, 8000).then(r => r.ok ? r.json() : null).catch(() => null),
+        fetchWithTimeout(`${API}/graph/insights/ticket-velocity`, {}, 8000).then(r => r.ok ? r.json() : null).catch(() => null)
       ])
       
       setInsights({
@@ -455,20 +546,22 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
         velocity: velocityRes
       })
     } catch (err) {
-      console.error("Failed to fetch insights:", err)
+      console.warn("Failed to fetch insights:", err)
+    } finally {
+      setLoadingInsights(false)
     }
-    setLoadingInsights(false)
-  }, [])
+  }, [fetchWithTimeout])
 
   const syncGraph = async () => {
     setSyncing(true)
     try {
-      await fetch(`${API}/graph/sync`, { method: 'POST' })
+      await fetchWithTimeout(`${API}/graph/sync`, { method: 'POST' }, 15000)
       await Promise.all([fetchStatus(), loadVisualization(), fetchInsights()])
     } catch (err) {
       console.error("Sync failed:", err)
+    } finally {
+      setSyncing(false)
     }
-    setSyncing(false)
   }
 
   // Initial load
@@ -787,7 +880,7 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
             Neo4j could not be reached. Check the backend NEO4J_URI and credentials, then try again.
           </p>
           <p className="mt-3 text-xs text-muted-foreground wrap-break-word">{graphError}</p>
-          <div className="mt-5 flex justify-center gap-2">
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
             <button
               type="button"
               onClick={loadVisualization}
@@ -795,11 +888,18 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
             >
               Retry
             </button>
+            <button
+              type="button"
+              onClick={loadDemoData}
+              className="px-4 py-2 bg-foreground text-background text-sm font-medium hover:opacity-90"
+            >
+              Load Demo Graph
+            </button>
             {onBack && (
               <button
                 type="button"
                 onClick={onBack}
-                className="px-4 py-2 bg-foreground text-background text-sm font-medium hover:opacity-90"
+                className="px-4 py-2 border border-border text-sm font-medium hover:bg-muted"
               >
                 Back
               </button>
@@ -1137,6 +1237,35 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
             enableNavigationControls={true}
             controlType="orbit"
           />
+
+          {filteredData.nodes.length === 0 && (
+            <div className="absolute inset-0 flex items-center justify-center p-6 pointer-events-none z-10">
+              <div className="bg-card/95 backdrop-blur-md border border-border p-6 max-w-md text-center shadow-lg pointer-events-auto rounded-xl">
+                <Info className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
+                <h3 className="font-semibold text-base mb-1">No Graph Data to Display</h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  No nodes match current filters, or the database has not been synced yet.
+                </p>
+                <div className="flex justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={syncGraph}
+                    disabled={syncing}
+                    className="px-3 py-1.5 border border-border rounded-lg text-xs font-medium hover:bg-muted"
+                  >
+                    {syncing ? 'Syncing...' : 'Sync Graph'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={loadDemoData}
+                    className="px-3 py-1.5 bg-foreground text-background rounded-lg text-xs font-medium hover:opacity-90"
+                  >
+                    Load Demo Data
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Stats Bar - Mobile Responsive */}
           <motion.div 

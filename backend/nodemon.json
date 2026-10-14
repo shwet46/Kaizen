@@ -1,0 +1,22 @@
+{
+  "restartable": "rs",
+  "ignore": [
+    "node_modules/**/node_modules",
+    "employee_data.json",
+    "random/**",
+    "test/**",
+    "*.log"
+  ],
+  "watch": [
+    "index.js",
+    "config/",
+    "middleware/",
+    "models/",
+    "routes/",
+    "services/",
+    "utils/"
+  ],
+  "ext": "js,mjs,cjs,json",
+  "delay": 1500,
+  "stdin": false
+}

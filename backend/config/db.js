@@ -23,6 +23,10 @@ const dbConnect = async () => {
   }
 };
 
+mongoose.connection.on('error', (err) => {
+  console.warn('⚠️ MongoDB connection error:', err.message);
+});
+
 mongoose.connection.on('disconnected', () => {
   console.warn('MongoDB connection lost. Reconnection will be attempted.');
 });
@@ -30,6 +34,9 @@ mongoose.connection.on('disconnected', () => {
 mongoose.connection.on('reconnected', () => {
   console.log('MongoDB reconnected successfully.');
 });
+
+// Avoid indefinite query buffering if Mongo is offline
+mongoose.set('bufferTimeoutMS', 3000);
 
 dbConnect();
 

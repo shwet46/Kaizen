@@ -90,8 +90,42 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
+// Catch unhandled errors and rejections so the server does not crash unexpectedly
+process.on('uncaughtException', (err) => {
+  console.error('⚠️ Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('⚠️ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 const PORT = process.env.PORT || 8000;
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`⚠️ Port ${PORT} is already in use. Please terminate the process using port ${PORT} or configure a different PORT.`);
+  } else {
+    console.error('⚠️ Server listener error:', err);
+  }
+});
+
+// Clean socket release on nodemon restart (SIGUSR2) and termination
+const handleGracefulShutdown = (signal) => {
+  console.log(`Received ${signal}, closing HTTP server cleanly...`);
+  server.close(() => {
+    console.log('HTTP server closed.');
+    if (signal === 'SIGUSR2') {
+      process.kill(process.pid, 'SIGUSR2');
+    } else {
+      process.exit(0);
+    }
+  });
+};
+
+process.once('SIGUSR2', () => handleGracefulShutdown('SIGUSR2'));
+process.on('SIGINT', () => handleGracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => handleGracefulShutdown('SIGTERM'));
