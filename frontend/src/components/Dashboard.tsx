@@ -13,7 +13,7 @@ import {
   FaCircleCheck as CheckCircle
 } from "react-icons/fa6"
 
-const API = import.meta.env.VITE_API_URL || "/api"
+const API = import.meta.env.VITE_API_URL || "https://kaizen-backend-8x01.onrender.com/api"
 
 // ============================================
 // TYPES & INTERFACES

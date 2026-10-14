@@ -19,7 +19,7 @@ import {
   LiaSpinnerSolid as Loader2
 } from "react-icons/lia"
 
-const API = import.meta.env.VITE_API_URL || "/api"
+const API = import.meta.env.VITE_API_URL || "https://kaizen-backend-8x01.onrender.com/api"
 
 // ============================================
 // TYPES

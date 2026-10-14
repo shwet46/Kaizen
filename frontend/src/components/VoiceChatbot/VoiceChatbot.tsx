@@ -22,7 +22,7 @@ import {
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API_URL = import.meta.env.VITE_VOICE_CHATBOT_API || 'http://localhost:5001';
+const API_URL = import.meta.env.VITE_VOICE_CHATBOT_API || 'https://kaizen-bot-awcf.onrender.com';
 
 interface Message {
     id: string;

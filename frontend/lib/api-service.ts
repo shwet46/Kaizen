@@ -1,6 +1,6 @@
 import { EmployeeData, LLMAllocationResponse } from './types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/smart-allocate';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://kaizen-backend-8x01.onrender.com/api/smart-allocate';
 
 // Fetch employees from MongoDB via API (smart-allocate format with JIRA/GitHub data)
 export const fetchEmployees = async (): Promise<EmployeeData[]> => {

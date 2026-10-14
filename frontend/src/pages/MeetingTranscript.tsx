@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API = import.meta.env.VITE_API_URL || "/api";
+const API = import.meta.env.VITE_API_URL || "https://kaizen-backend-8x01.onrender.com/api";
 import { Button } from "@/components/ui/button";
 import {
   LiaArrowLeftSolid as ArrowLeft,

@@ -1,6 +1,6 @@
 import type { EmployeeData, LLMAllocationResponse } from './types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://kaizen-backend-8x01.onrender.com/api';
 
 // Fetch employees from MongoDB via API
 export const fetchEmployees = async (): Promise<EmployeeData[]> => {
