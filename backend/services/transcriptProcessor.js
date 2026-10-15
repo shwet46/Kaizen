@@ -66,7 +66,7 @@ function parseTranscript(transcriptData) {
  * Extract key topics and action items using Gemini AI
  */
 async function analyzeTranscriptWithAI(participantData) {
-  const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
+  const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
   
   const prompt = `You are analyzing a meeting transcript. Extract key information from the following spoken text.
 

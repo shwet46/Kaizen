@@ -2,7 +2,7 @@ import type { EmployeeData, LLMAllocationResponse, TaskData } from './types';
 import { fetchEmployees } from './api-service';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_FEATHERLESS_API_KEY || '';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent';
 
 // Cache for employees from MongoDB
 let cachedEmployees: EmployeeData[] | null = null;

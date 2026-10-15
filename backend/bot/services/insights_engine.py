@@ -366,7 +366,7 @@ Format your responses using clear markdown:
 
             if getattr(self, 'sdk_type', '') == 'genai':
                 from google.genai import types
-                for model_name in ['gemini-3.8-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']:
+                for model_name in ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']:
                     try:
                         response = self.client.models.generate_content(
                             model=model_name,

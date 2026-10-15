@@ -1,14 +1,13 @@
 import type { EmployeeData, LLMAllocationResponse } from './types';
 
-const getApiBaseUrl = () => {
-  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL.replace(/\/$/, '');
-  if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:8000/api';
-  }
-  return 'https://kaizen-backend-8x01.onrender.com/api';
-};
+// Hardcoded API endpoints using logical OR for fallback
+// Backend API
+const BACKEND_API = 'https://kaizen-backend-8x01.onrender.com/api';
+// Bot API
+const BOT_API = 'https://kaizen-bot-awcf.onrender.com/api';
+// Primary API base used by the frontend (fallback to bot API if backend API is unavailable)
+const API_BASE_URL = BACKEND_API || BOT_API;
 
-const API_BASE_URL = getApiBaseUrl();
 
 // Fetch employees from MongoDB via API
 export const fetchEmployees = async (): Promise<EmployeeData[]> => {
