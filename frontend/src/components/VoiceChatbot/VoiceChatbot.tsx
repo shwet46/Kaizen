@@ -23,6 +23,9 @@ import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const API_URL = import.meta.env.VITE_VOICE_CHATBOT_API || 'https://kaizen-bot-awcf.onrender.com';
+// Axios timeout constants (ms)
+const GREETING_TIMEOUT_MS = 8000;  // greeting can be slow on cold start
+const CHAT_TIMEOUT_MS = 30000;     // chat queries can be slow on free tier
 
 interface Message {
     id: string;
@@ -103,16 +106,28 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
         if (!isOpen || messages.length > 0) return;
 
         setGreetingLoading(true);
-        axios.get(`${API_URL}/api/context/greeting`)
+
+        // Use a race between the actual API call and a local fallback timeout
+        // This prevents a blank screen when the bot service is cold-starting on Render
+        const fallbackGreeting = '### Welcome to **Kaizen Intelligence**\n\nI am your live AI business delivery and engineering analytics copilot.\n\n💡 *Type your question below or click the microphone to get started.*';
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            controller.abort();
+        }, GREETING_TIMEOUT_MS);
+
+        axios.get(`${API_URL}/api/context/greeting`, {
+            signal: controller.signal,
+            timeout: GREETING_TIMEOUT_MS
+        })
             .then(res => {
-                addMessage('assistant', res.data.greeting);
+                clearTimeout(timeoutId);
+                addMessage('assistant', res.data.greeting || fallbackGreeting);
             })
             .catch(() => {
-                // Fallback if backend is unreachable
-                addMessage(
-                    'assistant',
-                    '### Welcome to **Kaizen Intelligence**\n\nI am your live AI business delivery and engineering analytics copilot.\n\n💡 *Type your question below or click the microphone to get started.*'
-                );
+                clearTimeout(timeoutId);
+                // Fallback if backend is unreachable or cold-starting
+                addMessage('assistant', fallbackGreeting);
             })
             .finally(() => setGreetingLoading(false));
     }, [isOpen, messages.length, addMessage]);
@@ -148,7 +163,7 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
                 query: trimmed,
                 language: 'en-IN',
                 with_audio: true
-            });
+            }, { timeout: CHAT_TIMEOUT_MS });
 
             const { response_text, response_audio } = response.data;
             if (!response_text || typeof response_text !== 'string') {
@@ -170,9 +185,18 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
             }
         } catch (error) {
             console.error('Text chat failed:', error);
-            const message = axios.isAxiosError(error) && error.response?.data?.error
-                ? error.response.data.error
-                : '### ⚡ Assistant Connectivity Notice\n\nI could not reach the live backend service. Please ensure the Python bot server is running on port 5001 (`bot/app.py`).';
+            let message: string;
+            if (axios.isAxiosError(error)) {
+                if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+                    message = '### ⏳ Service Warming Up\n\nThe AI service is starting up (this can take ~30s on the free tier). Please try again in a moment.';
+                } else if (error.response?.data?.error) {
+                    message = error.response.data.error;
+                } else {
+                    message = '### ⚡ Assistant Connectivity Notice\n\nI could not reach the live backend service. Please ensure the Python bot server is running.';
+                }
+            } else {
+                message = '### ⚡ Assistant Connectivity Notice\n\nI could not reach the live backend service. Please ensure the Python bot server is running.';
+            }
             addMessage('assistant', message);
         } finally {
             setIsProcessing(false);
@@ -545,14 +569,21 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
     // Fetch dynamic suggestion pills from backend on first open
     useEffect(() => {
         if (!isOpen || dynamicSuggestions.length > 0) return;
-        axios.get(`${API_URL}/api/context/suggestions`)
+        axios.get(`${API_URL}/api/context/suggestions`, { timeout: GREETING_TIMEOUT_MS })
             .then(res => {
                 if (Array.isArray(res.data.suggestions)) {
                     setDynamicSuggestions(res.data.suggestions);
                 }
             })
             .catch(() => {
-                // Keep empty — suggestions panel will simply not render
+                // Show sensible static suggestions as fallback when bot is cold-starting
+                setDynamicSuggestions([
+                    { label: 'Team Velocity', query: 'How is the team performing?', bg: 'bg-[#E8F0FE]', text: 'text-[#1A73E8]', border: 'border-[#4285F4]/30' },
+                    { label: "Shweta's Status", query: 'What is Shweta working on?', bg: 'bg-[#F0E9FF]', text: 'text-[#7E57C2]', border: 'border-[#7E57C2]/30' },
+                    { label: "Maitri's Status", query: 'What is Maitri working on?', bg: 'bg-[#E6F4EA]', text: 'text-[#137333]', border: 'border-[#34A853]/30' },
+                    { label: 'Project Health', query: 'Is the project on track?', bg: 'bg-[#E6F4EA]', text: 'text-[#137333]', border: 'border-[#34A853]/30' },
+                    { label: 'Blockers & Risks', query: 'Are there any blockers?', bg: 'bg-[#FEF7E0]', text: 'text-[#B06000]', border: 'border-[#FBBC05]/40' },
+                ]);
             });
     }, [isOpen, dynamicSuggestions.length]);
 

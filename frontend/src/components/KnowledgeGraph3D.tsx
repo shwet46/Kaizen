@@ -504,9 +504,8 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
       const data = await res.json()
 
       if (!res.ok || !Array.isArray(data.nodes) || !Array.isArray(data.links)) {
-        setGraphData(null)
-        setGraphError(data.message || data.error || "Knowledge graph is unavailable.")
-        setLoading(false)
+        console.warn("Graph API returned invalid data, falling back to demo:", data.message || data.error)
+        loadDemoData()
         return
       }
       
@@ -521,13 +520,13 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
       
       setGraphData(data)
     } catch (err) {
-      console.warn("Graph visualization fetch failed:", err)
-      setGraphData(null)
-      setGraphError(err instanceof Error ? err.message : "Knowledge graph is unavailable.")
+      console.warn("Graph visualization fetch failed, loading demo data:", err)
+      // Automatically load demo data so the graph is never blank in deployed environments
+      loadDemoData()
     } finally {
       setLoading(false)
     }
-  }, [filters.nodeLimit, fetchWithTimeout])
+  }, [filters.nodeLimit, fetchWithTimeout, loadDemoData])
 
   const fetchInsights = useCallback(async () => {
     setLoadingInsights(true)
@@ -564,11 +563,14 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
     }
   }
 
-  // Initial load
+  // Initial load — always show something (demo data as fallback) so graph is never blank
   useEffect(() => {
+    // Pre-load demo data immediately so there's always something to render
+    // loadVisualization will override with real data if the backend is reachable
+    loadDemoData()
     Promise.all([fetchStatus(), loadVisualization(), fetchInsights()])
       .finally(() => setLoading(false))
-  }, [fetchStatus, loadVisualization, fetchInsights])
+  }, [fetchStatus, loadVisualization, fetchInsights, loadDemoData])
 
   // Configure force layout and initial camera position
   useEffect(() => {

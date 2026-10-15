@@ -20,8 +20,7 @@ import {
   LiaBrainSolid as Brain,
   LiaHeartSolid as Heart,
   LiaChartLineSolid as Activity,
-  LiaCheckCircleSolid as CheckCircle,
-  LiaTimesCircleSolid as XCircle
+  LiaCheckCircleSolid as CheckCircle
 } from "react-icons/lia"
 
 const getApiUrl = () => {
@@ -59,11 +58,6 @@ interface AllocationData {
 }
 
 type Health = { status: string; db?: string }
-type Metrics = {
-  by_source_entity: Record<string, { success_count: number; fail_count: number; last_latency_ms: number | null }>
-  last_sync: Record<string, { last_sync_at: string | null; last_cursor: string | null }>
-}
-
 type UserRole = 'pm' | 'hr'
 type PMTab = 'dashboard' | 'graph' | 'smart-allocate' | 'delay-prediction' | 'finance' | 'roles' | 'allocation-simulation' | 'meeting-transcript'
 type HRTab = 'hr-performance' | 'hr-retention'
@@ -98,7 +92,6 @@ function App() {
   const activeTab = tabForPath(location.pathname)
 
   const [health, setHealth] = useState<Health | null>(null)
-  const [metrics, setMetrics] = useState<Metrics | null>(null)
   const [githubConnected, setGithubConnected] = useState<boolean | null>(null)
   const [oauthMessage, setOauthMessage] = useState<string | null>(null)
 
@@ -134,14 +127,6 @@ function App() {
       .then((r) => r.json())
       .then(setHealth)
       .catch(() => setHealth({ status: "error" }))
-  }, [])
-
-  // Metrics Check
-  useEffect(() => {
-    fetch(`${API}/metrics`)
-      .then((r) => r.json())
-      .then(setMetrics)
-      .catch(() => setMetrics(null))
   }, [])
 
   // GitHub Auth Status
@@ -236,28 +221,6 @@ function App() {
         {/* PM: Main Dashboard */}
         {userRole === 'pm' && activeTab === 'dashboard' && (
           <>
-            {/* Health & Metrics Widget */}
-            {health && metrics && (
-              <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                {Object.entries(metrics.by_source_entity).slice(0, 3).map(([key, val]) => (
-                  <div key={key} className="border-2 border-border bg-card p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.05)]">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[10px] font-mono uppercase text-muted-foreground font-bold">{key}</span>
-                      {val.last_latency_ms && <span className="text-[10px] font-mono text-muted-foreground">{val.last_latency_ms}ms</span>}
-                    </div>
-                    <div className="flex gap-3 text-xs font-mono">
-                      <span className="text-green-600 flex items-center gap-1 font-semibold">
-                        <CheckCircle className="w-3 h-3" /> {val.success_count}
-                      </span>
-                      <span className="text-red-500 flex items-center gap-1 font-semibold">
-                        <XCircle className="w-3 h-3" /> {val.fail_count}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
             <Dashboard
               onNavigate={handleNavigateTab}
               activeTab={activeTab}

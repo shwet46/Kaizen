@@ -376,66 +376,7 @@ export function Dashboard({ githubConnected, onConnectGitHub }: DashboardProps) 
       <div className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
         
         {/* ========================================================= */}
-        {/* EXISTING TELEMETRY SYNC STRIP (Source Entity Metrics)     */}
-        {/* ========================================================= */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {Object.entries(displayMetrics).slice(0, 4).map(([key, val]) => (
-            <div key={key} className="rounded-none border-2 border-border/80 bg-card p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)]">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-[10px] font-mono uppercase text-muted-foreground font-bold">{key.replace('_', ' ')}</span>
-                {val.last_latency_ms && (
-                  <span className="text-[10px] font-mono text-muted-foreground">{val.last_latency_ms}ms</span>
-                )}
-              </div>
-              <div className="flex gap-3 text-xs font-mono">
-                <span className="text-green-600 flex items-center gap-1 font-semibold">
-                  <CheckCircle className="w-3 h-3" /> {val.success_count.toLocaleString()}
-                </span>
-                <span className="text-red-500 flex items-center gap-1 font-semibold">
-                  <XCircle className="w-3 h-3" /> {val.fail_count}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ========================================================= */}
-        {/* 1. EXECUTIVE INTELLIGENCE HERO BANNER (Not rounded)       */}
-        {/* ========================================================= */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35 }}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
-        >
-          <div className="p-4 sm:p-5 rounded-none bg-card border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.12)] transition-all flex flex-col justify-center">
-            <span className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Release Confidence</span>
-            <span className="text-xl sm:text-2xl font-serif font-bold text-[#137333] flex items-center gap-2">
-              96.1% <span className="text-[10px] font-sans font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 border border-border/50">High</span>
-            </span>
-          </div>
-          <div className="p-4 sm:p-5 rounded-none bg-card border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.12)] transition-all flex flex-col justify-center">
-            <span className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Active Cost Rate</span>
-            <span className="text-xl sm:text-2xl font-serif font-bold text-[#1a73e8] flex items-center gap-2">
-              74.8% <span className="text-[10px] font-sans font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 border border-border/50">$1.05M</span>
-            </span>
-          </div>
-          <div className="p-4 sm:p-5 rounded-none bg-card border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.12)] transition-all flex flex-col justify-center">
-            <span className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">AI Assistant ROI</span>
-            <span className="text-xl sm:text-2xl font-serif font-bold text-[#7E57C2] flex items-center gap-2">
-              +410h <span className="text-[10px] font-sans font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 border border-border/50">9.8x</span>
-            </span>
-          </div>
-          <div className="p-4 sm:p-5 rounded-none bg-card border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.12)] transition-all flex flex-col justify-center">
-            <span className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Workforce Retention</span>
-            <span className="text-xl sm:text-2xl font-serif font-bold text-foreground flex items-center gap-2">
-              94.6% <span className="text-[10px] font-sans font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 border border-border/50">Top 5%</span>
-            </span>
-          </div>
-        </motion.div>
-
-        {/* ========================================================= */}
-        {/* 2. REAL-TIME CORE STATS GRID (Boxes Not Rounded)          */}
+        {/* 1. CORE DELIVERY TELEMETRY                                */}
         {/* ========================================================= */}
         <section>
           <div className="flex items-center justify-between mb-3.5">
@@ -548,6 +489,65 @@ export function Dashboard({ githubConnected, onConnectGitHub }: DashboardProps) 
             </motion.div>
           </div>
         </section>
+
+        {/* ========================================================= */}
+        {/* 2. EXISTING TELEMETRY SYNC STRIP (Source Entity Metrics)  */}
+        {/* ========================================================= */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {Object.entries(displayMetrics).slice(0, 4).map(([key, val]) => (
+            <div key={key} className="rounded-none border-2 border-border/80 bg-card p-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)]">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[10px] font-mono uppercase text-muted-foreground font-bold">{key.replace('_', ' ')}</span>
+                {val.last_latency_ms && (
+                  <span className="text-[10px] font-mono text-muted-foreground">{val.last_latency_ms}ms</span>
+                )}
+              </div>
+              <div className="flex gap-3 text-xs font-mono">
+                <span className="text-green-600 flex items-center gap-1 font-semibold">
+                  <CheckCircle className="w-3 h-3" /> {val.success_count.toLocaleString()}
+                </span>
+                <span className="text-red-500 flex items-center gap-1 font-semibold">
+                  <XCircle className="w-3 h-3" /> {val.fail_count}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ========================================================= */}
+        {/* 3. EXECUTIVE INTELLIGENCE HERO BANNER                     */}
+        {/* ========================================================= */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
+        >
+          <div className="p-4 sm:p-5 rounded-none bg-card border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.12)] transition-all flex flex-col justify-center">
+            <span className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Release Confidence</span>
+            <span className="text-xl sm:text-2xl font-serif font-bold text-[#137333] flex items-center gap-2">
+              96.1% <span className="text-[10px] font-sans font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 border border-border/50">High</span>
+            </span>
+          </div>
+          <div className="p-4 sm:p-5 rounded-none bg-card border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.12)] transition-all flex flex-col justify-center">
+            <span className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Active Cost Rate</span>
+            <span className="text-xl sm:text-2xl font-serif font-bold text-[#1a73e8] flex items-center gap-2">
+              74.8% <span className="text-[10px] font-sans font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 border border-border/50">$1.05M</span>
+            </span>
+          </div>
+          <div className="p-4 sm:p-5 rounded-none bg-card border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.12)] transition-all flex flex-col justify-center">
+            <span className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">AI Assistant ROI</span>
+            <span className="text-xl sm:text-2xl font-serif font-bold text-[#7E57C2] flex items-center gap-2">
+              +410h <span className="text-[10px] font-sans font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 border border-border/50">9.8x</span>
+            </span>
+          </div>
+          <div className="p-4 sm:p-5 rounded-none bg-card border-2 border-border shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,0.12)] transition-all flex flex-col justify-center">
+            <span className="text-[11px] sm:text-xs font-sans font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">Workforce Retention</span>
+            <span className="text-xl sm:text-2xl font-serif font-bold text-foreground flex items-center gap-2">
+              94.6% <span className="text-[10px] font-sans font-semibold text-muted-foreground bg-muted px-1.5 py-0.5 border border-border/50">Top 5%</span>
+            </span>
+          </div>
+        </motion.div>
 
 
         {/* ========================================================= */}

@@ -31,7 +31,13 @@ from services.insights_engine import InsightsEngine
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend
+CORS(app, resources={
+    r"/*": {
+        "origins": "*",
+        "allow_headers": ["Content-Type", "Authorization", "Accept"],
+        "methods": ["GET", "POST", "OPTIONS"]
+    }
+})
 
 # Top-level Health endpoints for Render deployment monitoring
 @app.route('/', methods=['GET'])
@@ -49,10 +55,24 @@ def health():
         'service': 'kaizen-bot'
     })
 
-# Initialize services
-sarvam_service = SarvamService()
-mongodb_service = MongoDBService()
-insights_engine = InsightsEngine(mongodb_service)
+# Initialize services with graceful fallback if credentials/DB are unavailable
+try:
+    sarvam_service = SarvamService()
+except Exception as e:
+    print(f"Warning: SarvamService failed to initialize: {e}")
+    sarvam_service = None
+
+try:
+    mongodb_service = MongoDBService()
+except Exception as e:
+    print(f"Warning: MongoDBService failed to initialize: {e}")
+    mongodb_service = None
+
+try:
+    insights_engine = InsightsEngine(mongodb_service)
+except Exception as e:
+    print(f"Warning: InsightsEngine failed to initialize: {e}")
+    insights_engine = None
 
 # ============= API ENDPOINTS =============
 
@@ -272,6 +292,9 @@ def process_query():
         if not data or not isinstance(data.get('query'), str) or not data['query'].strip():
             return jsonify({'error': 'No query provided'}), 400
         
+        if not insights_engine:
+            return jsonify({'error': 'Insights engine is not available. Check server configuration.'}), 503
+        
         query = data['query']
         language = data.get('language', 'en')
         return_audio = data.get('return_audio', False)
@@ -286,7 +309,7 @@ def process_query():
         }
         
         # Optionally generate audio response
-        if return_audio:
+        if return_audio and sarvam_service:
             audio_bytes = sarvam_service.text_to_speech(
                 response_text,
                 language=f'{language}-IN'
@@ -311,6 +334,15 @@ def text_chat():
         if not data or not isinstance(data.get('query'), str) or not data['query'].strip():
             return jsonify({'error': 'No query provided'}), 400
         
+        if not insights_engine:
+            # Return a helpful message when backend services aren't fully configured
+            return jsonify({
+                'query': data.get('query', ''),
+                'response_text': '### ⚙️ Service Initializing\n\nThe AI backend is starting up. Please try again in a moment.\n\n💡 *If this persists, check that GEMINI_API_KEY and MONGODB_URI are set in the environment.*',
+                'response_audio': None,
+                'language': data.get('language', 'en-IN')
+            })
+        
         query = data['query']
         language = data.get('language', 'en-IN')
         lang_code = language.split('-')[0]
@@ -320,7 +352,7 @@ def text_chat():
         
         # Optionally generate TTS audio
         response_audio = None
-        if data.get('with_audio', False):
+        if data.get('with_audio', False) and sarvam_service:
             audio_bytes = sarvam_service.text_to_speech(response_text, language=language)
             if audio_bytes:
                 response_audio = base64.b64encode(audio_bytes).decode('utf-8')
