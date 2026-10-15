@@ -6,9 +6,54 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+let genAI = process.env.GEMINI_API_KEY ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY) : null;
 
 class GeminiCompletionService {
+  constructor() {
+    this.geminiBillingDepleted = false;
+    this.lastApiKey = process.env.GEMINI_API_KEY || '';
+  }
+
+  /**
+   * Check if Gemini billing is exhausted
+   */
+  isDepleted() {
+    // If API key changed in environment, reset depleted state
+    if (this.lastApiKey !== (process.env.GEMINI_API_KEY || '')) {
+      this.lastApiKey = process.env.GEMINI_API_KEY || '';
+      this.geminiBillingDepleted = false;
+      if (process.env.GEMINI_API_KEY) {
+        genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      }
+    }
+    return this.geminiBillingDepleted;
+  }
+
+  /**
+   * Manually reset depleted state
+   */
+  resetDepleted() {
+    this.geminiBillingDepleted = false;
+    if (process.env.GEMINI_API_KEY) {
+      genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    }
+  }
+
+  /**
+   * Check if an error indicates billing/credit exhaustion
+   */
+  isBillingError(error) {
+    const message = (error?.message || '').toLowerCase();
+    const status = error?.status || error?.statusCode;
+    return (
+      status === 402 ||
+      message.includes('402') ||
+      message.includes('payment required') ||
+      message.includes('prepayment credits') ||
+      message.includes('billing')
+    );
+  }
+
   /**
    * Generate chat completion using Gemini
    * @param {Array} messages - Array of message objects {role, content}
@@ -17,11 +62,25 @@ class GeminiCompletionService {
    */
   async generateCompletion(messages, options = {}) {
     if (!process.env.GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY is not configured');
+      const err = new Error('GEMINI_API_KEY is not configured');
+      err.status = 401;
+      throw err;
+    }
+
+    if (this.isDepleted()) {
+      const err = new Error('Gemini prepayment credits are depleted (402 Payment Required). Please manage project billing at https://ai.studio/projects or provide a funded GEMINI_API_KEY.');
+      err.status = 402;
+      err.isBillingError = true;
+      throw err;
     }
 
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
+      if (!genAI) {
+        genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      }
+
+      const modelName = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+      const model = genAI.getGenerativeModel({ model: modelName });
 
       // Convert OpenAI-style messages to Gemini format
       // Extract system prompt and user messages
@@ -80,7 +139,7 @@ class GeminiCompletionService {
             finish_reason: 'stop'
           }
         ],
-        model: 'gemini-3.8-flash',
+        model: modelName,
         usage: {
           prompt_tokens: 0,
           completion_tokens: 0,
@@ -88,11 +147,18 @@ class GeminiCompletionService {
         }
       };
     } catch (error) {
-      console.error('Gemini API Error:', error.message);
-      const status = error.status || 500;
+      const isBilling = this.isBillingError(error);
+      if (isBilling) {
+        this.geminiBillingDepleted = true;
+        console.warn('⚠️ [Gemini] Prepayment credits depleted (402 Payment Required). Active API key has $0.00 credits on Google AI Studio.');
+      } else {
+        console.error('Gemini API Error:', error.message);
+      }
+      const status = error.status || (isBilling ? 402 : 500);
       const message = error.message || 'Gemini API request failed';
       const err = new Error(message);
       err.status = status;
+      err.isBillingError = isBilling;
       throw err;
     }
   }

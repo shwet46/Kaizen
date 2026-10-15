@@ -130,6 +130,8 @@ NODE_ENV=development
 
 # Optional integrations
 GEMINI_API_KEY=
+# Optional comma-separated model preference for the Python bot
+GEMINI_MODELS=gemini-flash-latest,gemini-2.5-flash,gemini-2.0-flash
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 GITHUB_CALLBACK_URL=http://localhost:8000/api/oauth/github/callback
@@ -138,6 +140,12 @@ GITHUB_DEFAULT_REPO=owner/repository
 ```
 
 Do not commit credentials or production secrets. The server has development fallbacks, but production deployments should set every required secret explicitly.
+
+If Gemini returns `402 Payment Required` because the project has no remaining
+prepayment credits, the Python bot automatically uses its local intelligence
+engine and stops retrying Gemini for the lifetime of that process. To restore
+LLM-generated responses, add a funded Gemini API key to the deployment
+environment and restart the bot.
 
 ### 3. Start the services
 

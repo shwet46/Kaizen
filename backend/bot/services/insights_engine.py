@@ -154,12 +154,16 @@ class InsightsEngine:
     def __init__(self, mongodb_service):
         self.mongodb = mongodb_service
         self.api_key = os.getenv('GEMINI_API_KEY') or os.getenv('VITE_GEMINI_API_KEY')
+        self.gemini_billing_exhausted = False
         self.system_prompt = self._load_system_prompt()
         self.client = None
         self.sdk_type = None
         self._init_gemini()
 
     def _init_gemini(self):
+        if self.gemini_billing_exhausted:
+            return
+
         if not self.api_key or 'your_gemini_api_key' in self.api_key or self.api_key.startswith('your_'):
             for env_name in ['GEMINI_API_KEY', 'VITE_GEMINI_API_KEY']:
                 cand = (os.getenv(env_name) or '').strip().strip('"\'')
@@ -346,6 +350,9 @@ Format your responses using clear markdown:
 
     def _generate_response(self, query: str, context: Dict[str, Any], language: str) -> str:
         """Attempt to generate response using Gemini if initialized"""
+        if self.gemini_billing_exhausted:
+            return self._generate_smart_fallback(query, context, language)
+
         if not self.client:
             self._init_gemini()
         if not self.client:
@@ -366,7 +373,13 @@ Format your responses using clear markdown:
 
             if getattr(self, 'sdk_type', '') == 'genai':
                 from google.genai import types
-                for model_name in ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']:
+                configured_models = os.getenv('GEMINI_MODELS', '')
+                model_names = [
+                    model.strip()
+                    for model in configured_models.split(',')
+                    if model.strip()
+                ] or ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash']
+                for model_name in model_names:
                     try:
                         response = self.client.models.generate_content(
                             model=model_name,
@@ -380,14 +393,25 @@ Format your responses using clear markdown:
                         if response and response.text:
                             return response.text.strip()
                     except Exception as me:
+                        if self._is_billing_error(me):
+                            self.gemini_billing_exhausted = True
+                            print('Gemini billing limit reached; using the local intelligence engine.')
+                            break
                         print(f"GenAI model {model_name} attempt note: {me}")
                         continue
                 return self._generate_smart_fallback(query, context, language)
             elif getattr(self, 'sdk_type', '') == 'legacy':
-                response = self.client.generate_content(
-                    context_str,
-                    generation_config={"max_output_tokens": 1500, "temperature": 0.7}
-                )
+                try:
+                    response = self.client.generate_content(
+                        context_str,
+                        generation_config={"max_output_tokens": 1500, "temperature": 0.7}
+                    )
+                except Exception as legacy_error:
+                    if self._is_billing_error(legacy_error):
+                        self.gemini_billing_exhausted = True
+                        print('Gemini billing limit reached; using the local intelligence engine.')
+                        return self._generate_smart_fallback(query, context, language)
+                    raise
                 if response and response.text:
                     return response.text.strip()
                 return self._generate_smart_fallback(query, context, language)
@@ -397,6 +421,16 @@ Format your responses using clear markdown:
         except Exception as e:
             print(f"Gemini API invocation note: {e}. Switching to dynamic intelligence engine.")
             return self._generate_smart_fallback(query, context, language)
+
+    @staticmethod
+    def _is_billing_error(error: Exception) -> bool:
+        message = str(error).lower()
+        return (
+            '402' in message
+            or 'payment required' in message
+            or 'prepayment credits are depleted' in message
+            or 'quota' in message
+        )
 
     def _handle_team_queries(self, q: str, query: str, is_hindi: bool = False) -> Optional[str]:
         """

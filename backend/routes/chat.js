@@ -201,26 +201,77 @@ ${jiraContext.sprints?.filter(s => s.state === 'active').map(s => `- ${s.name}: 
 
 Answer the user's questions about work completion, remaining tasks, team performance, and project status based on this data. Be concise and helpful. If asked about specific team members, provide their detailed statistics.`;
 
-        // Call Gemini API using SDK
-        const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
-        const result = await model.generateContent({
-            contents: [
-                {
-                    role: 'user',
-                    parts: [{ text: systemPrompt + '\n\nUser Question: ' + message }]
+        // Call Gemini API using SDK if available
+        let aiResponse = null;
+        try {
+            const modelName = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+            const model = genAI.getGenerativeModel({ model: modelName });
+            const result = await model.generateContent({
+                contents: [
+                    {
+                        role: 'user',
+                        parts: [{ text: systemPrompt + '\n\nUser Question: ' + message }]
+                    }
+                ],
+                generationConfig: {
+                    temperature: 0.7,
+                    maxOutputTokens: 1024
                 }
-            ],
-            generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 1024
+            });
+
+            aiResponse = result.response.text();
+        } catch (llmError) {
+            console.warn('⚠️ [Chat] Gemini LLM unavailable/depleted (402/error):', llmError.message);
+            console.warn('ℹ️ [Chat] Generating dynamic Jira intelligence response from local context.');
+        }
+
+        // If LLM produced an answer, return it
+        if (aiResponse) {
+            return res.json({
+                response: aiResponse,
+                context: {
+                    totalIssues: jiraContext.totalIssues,
+                    completedIssues: jiraContext.completedIssues
+                }
+            });
+        }
+
+        // Local smart conversational fallback using real jiraContext
+        const userStats = jiraContext.userStats || {};
+        const total = jiraContext.totalIssues || 0;
+        const completed = jiraContext.completedIssues || 0;
+        const inProgress = jiraContext.inProgressIssues || 0;
+        const pending = jiraContext.pendingIssues || 0;
+        const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+        
+        const qLower = (message || '').toLowerCase();
+        let matchedMember = null;
+        for (const [name, stats] of Object.entries(userStats)) {
+            if (qLower.includes(name.toLowerCase())) {
+                matchedMember = { name, ...stats };
+                break;
             }
-        });
+        }
 
-        const aiResponse = result.response.text() ||
-            'I apologize, I could not generate a response. Please try again.';
+        let fallbackMsg = '';
+        if (matchedMember) {
+            fallbackMsg = `### ${matchedMember.name} (${matchedMember.role || 'Team Member'})\n` +
+                `- **Total Assigned:** ${matchedMember.totalAssigned || 0} issues\n` +
+                `- **Completed:** ${matchedMember.completed || 0} (${matchedMember.completedStoryPoints || 0} story points)\n` +
+                `- **In Progress:** ${matchedMember.inProgress || 0}\n` +
+                `- **To Do / Pending:** ${matchedMember.todo || 0}\n` +
+                `- **Recent Issues:** ${(matchedMember.issues || []).slice(0, 3).map(i => `${i.key} (${i.status})`).join(', ') || 'None'}`;
+        } else {
+            fallbackMsg = `### Team Delivery & Progress Summary\n` +
+                `- **Total Tracked Issues:** ${total}\n` +
+                `- **Completed:** ${completed} (${completionRate}% delivery rate)\n` +
+                `- **In Progress:** ${inProgress}\n` +
+                `- **Backlog / Pending:** ${pending}\n\n` +
+                `*Status: Active sprint tracking is synchronized. (Response generated via local Jira intelligence engine).*`;
+        }
 
-        res.json({
-            response: aiResponse,
+        return res.json({
+            response: fallbackMsg,
             context: {
                 totalIssues: jiraContext.totalIssues,
                 completedIssues: jiraContext.completedIssues

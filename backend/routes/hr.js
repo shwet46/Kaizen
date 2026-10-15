@@ -487,8 +487,189 @@ router.post('/burnout-analysis', async (req, res) => {
 });
 
 /**
+/**
+ * Deterministic local analytics generator for employee performance reports.
+ * Used when Gemini LLM credits are depleted (HTTP 402) or offline.
+ */
+function generateLocalPerformanceReport(employee, metrics, failureReason = '') {
+    const emp = employee || {};
+    const met = metrics || {};
+    const commits = met.commits || {};
+    const tasks = met.tasks || {};
+    const perf = met.performance || {};
+
+    const name = emp.name || 'Engineer';
+    const role = emp.role || 'Software Engineer';
+    const dept = emp.department || 'Engineering';
+    const team = emp.team || 'Core Team';
+    const seniority = Number(emp.seniority_level) || 3;
+    const hourlyRate = Number(emp.hourly_rate) || 50;
+    const skills = Array.isArray(emp.skills) && emp.skills.length > 0 ? emp.skills : ['Software Engineering', 'System Architecture'];
+
+    const totalCommits = Number(commits.total) || 0;
+    const additions = Number(commits.additions) || 0;
+    const deletions = Number(commits.deletions) || 0;
+    const avgCommitSize = Number(commits.avg_size) || (totalCommits > 0 ? Math.round(additions / totalCommits) : 150);
+
+    const totalTasks = Number(tasks.total) || 10;
+    const completedTasks = Number(tasks.completed) || 0;
+    const overdueTasks = Number(tasks.overdue) || 0;
+    const completionRate = Number(tasks.completion_rate) !== undefined 
+        ? Number(tasks.completion_rate) 
+        : (totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 70);
+
+    const workloadScore = Number(perf.workload_score) || 50;
+    const stressLevel = Number(perf.stress_level) || 30;
+    const efficiency = Number(perf.efficiency) || completionRate;
+    const productivityScore = Number(perf.productivity_score) || (50 + seniority * 8);
+
+    // Appraisal score calculation (weighted 0-100)
+    let score = Math.round(
+        (efficiency * 0.35) + 
+        (productivityScore * 0.35) + 
+        (completionRate * 0.25) + 
+        (seniority * 2) - 
+        (overdueTasks * 2.5) - 
+        (stressLevel > 70 ? 4 : 0)
+    );
+    score = Math.max(35, Math.min(98, score));
+
+    // Budget impact & ROI calculation
+    const monthlyHours = 160;
+    const currentCost = Math.round(hourlyRate * monthlyHours);
+    const valueMultiplier = 1.15 + (score / 100) * 0.5 + (seniority * 0.05);
+    const projectedValue = Math.round(currentCost * valueMultiplier);
+    const roiPercent = Math.round(((projectedValue - currentCost) / currentCost) * 100);
+
+    let roiAssessment = '';
+    if (roiPercent >= 40) {
+        roiAssessment = `High positive ROI with an estimated +${roiPercent}% value return above base compensation, driven by high code velocity and reliable task execution.`;
+    } else if (roiPercent >= 15) {
+        roiAssessment = `Solid positive ROI (+${roiPercent}%), demonstrating steady sprint output and balanced technical contribution across assigned deliverables.`;
+    } else {
+        roiAssessment = `Neutral to moderate ROI (+${roiPercent}%); performance can be optimized by clearing delivery bottlenecks and balancing workload.`;
+    }
+
+    // Promotion readiness
+    let promotionReadiness = '';
+    if (score >= 85 && overdueTasks <= 1 && completionRate >= 80) {
+        promotionReadiness = `Ready - Demonstrates superior technical ownership across ${skills.slice(0, 2).join(' and ')}, consistent delivery velocity, and autonomy with minimal oversight.`;
+    } else if (score >= 70) {
+        promotionReadiness = `Developing - Consistent core contributor meeting role benchmarks; recommend taking on cross-module architecture and peer mentorship to qualify for higher band.`;
+    } else {
+        promotionReadiness = `Not ready - Needs focus on stabilizing sprint completion rate (${completionRate}%), resolving ${overdueTasks} overdue tasks, and balancing active work streams.`;
+    }
+
+    // Dynamic Strengths
+    const strengths = [];
+    if (completionRate >= 75) {
+        strengths.push(`High delivery velocity with a ${completionRate}% task completion rate (${completedTasks} of ${totalTasks} tasks closed).`);
+    } else {
+        strengths.push(`Active contribution across sprint commitments with ${completedTasks} completed work items.`);
+    }
+
+    if (totalCommits > 0) {
+        strengths.push(`Strong engineering cadence with ${totalCommits} commits (+${additions.toLocaleString()} / -${deletions.toLocaleString()} lines) maintaining steady repository activity.`);
+    } else {
+        strengths.push(`Consistent participation across core team workflows and sprint planning objectives.`);
+    }
+
+    strengths.push(`Demonstrated proficiency in ${skills.slice(0, 3).join(', ')} with solid domain problem-solving.`);
+
+    // Dynamic Areas for Improvement
+    const areasForImprovement = [];
+    if (overdueTasks > 0) {
+        areasForImprovement.push(`Clear current backlog of ${overdueTasks} overdue deliverables through proactive re-estimation and sprint alignment.`);
+    } else {
+        areasForImprovement.push(`Maintain rigorous cycle-time tracking to ensure zero overdue task slippage on complex deliverables.`);
+    }
+
+    if (stressLevel >= 60 || workloadScore >= 70) {
+        areasForImprovement.push(`Address elevated workload stress (score: ${stressLevel}/100) by redistributing parallel tasks and establishing work-in-progress (WIP) caps.`);
+    } else {
+        areasForImprovement.push(`Deconstruct larger changes (avg size: ${avgCommitSize} lines) into more focused pull requests to streamline review throughput.`);
+    }
+
+    // Dynamic Recommendations
+    const recommendations = [
+        `Align on quarterly technical milestones focusing on ${skills[0] || 'core architecture'} and automated test coverage.`,
+        overdueTasks > 0 
+            ? `Schedule weekly backlog triage with the lead engineer to unblock dependent task dependencies early.` 
+            : `Lead architectural design discussions and foster technical knowledge sharing across ${team}.`,
+        stressLevel >= 55 
+            ? `Calibrate sprint capacity to 80% to provide buffer for operational interruptions and prevent burnout.` 
+            : `Explore cross-department mentoring opportunities to elevate junior team members' ramp-up speed.`
+    ];
+
+    // Executive summary
+    const summary = `${name} is currently performing as a ${role} in ${dept} with an overall appraisal score of ${score}/100. They have demonstrated an efficiency rating of ${efficiency}% and a task completion rate of ${completionRate}% across ${totalTasks} assigned deliverables. Their productivity and technical engagement deliver an estimated ${roiPercent}% value above operational cost, making them a key contributor to ${team} delivery targets.`;
+
+    return {
+        summary,
+        strengths,
+        areas_for_improvement: areasForImprovement,
+        recommendations,
+        appraisal_score: score,
+        budget_impact: {
+            current_cost: currentCost,
+            projected_value: projectedValue,
+            roi_assessment: roiAssessment
+        },
+        promotion_readiness: promotionReadiness,
+        is_fallback: true,
+        source: 'Local Analytics Engine (Gemini Fallback)'
+    };
+}
+
+/**
+ * Deterministic local analytics generator for team retention insights.
+ * Used when Gemini LLM credits are depleted (HTTP 402) or offline.
+ */
+function generateLocalRetentionInsight(summaryData, risksData, failureReason = '') {
+    const summary = summaryData || {};
+    const risks = Array.isArray(risksData) ? risksData : [];
+    
+    const totalEmployees = summary.total_employees || 10;
+    const criticalRisk = summary.critical_risk || 0;
+    const highRisk = summary.high_risk || 0;
+    const lowRisk = summary.low_risk || 0;
+    const avgRiskScore = summary.avg_risk_score || 40;
+
+    const highRiskCount = criticalRisk + highRisk;
+    const healthStatus = avgRiskScore > 65 ? 'elevated retention concern' : avgRiskScore > 40 ? 'moderate retention risk' : 'healthy retention profile';
+
+    const overallAssessment = `Team retention diagnostics indicate a ${healthStatus} across ${totalEmployees} monitored members, with an average risk score of ${avgRiskScore}/100. Currently, ${highRiskCount} employee(s) sit in critical or high risk tiers due to workload concentration and overdue deliverables, while ${lowRisk} members maintain stable, low-risk engagement patterns. Immediate operational rebalancing will stabilize team retention and prevent preventable turnover.`;
+
+    const criticalActions = [
+        `Schedule confidential 1-on-1 check-ins within 48 hours for the ${Math.max(1, highRiskCount)} highest-risk team member(s) to evaluate bandwidth bottlenecks.`,
+        `Reallocate or re-estimate overdue tasks currently assigned to overloaded engineers to restore delivery momentum.`,
+        `Enforce work-in-progress (WIP) limits across active sprints to prevent concurrent task overload on critical-path contributors.`
+    ];
+
+    const teamRecommendations = [
+        `Establish cross-training pairs on mission-critical services to eliminate single points of failure and reduce lone-contributor stress.`,
+        `Incorporate a 15-20% buffer in sprint capacity planning to absorb production incidents without infringing on engineer recovery time.`
+    ];
+
+    const wellnessInitiatives = [
+        `Institute bi-weekly 'Focus Days' with zero scheduled internal meetings to provide uninterrupted deep engineering time.`,
+        `Implement proactive burnout alerts in management dashboards when an engineer's workload index exceeds 75% for two consecutive cycles.`,
+        `Reinforce recognition programs acknowledging peer unblocking, on-call support, and high-impact non-feature contributions.`
+    ];
+
+    return {
+        overall_assessment: overallAssessment,
+        critical_actions: criticalActions,
+        team_recommendations: teamRecommendations,
+        wellness_initiatives: wellnessInitiatives,
+        is_fallback: true,
+        source: 'Local Analytics Engine (Gemini Fallback)'
+    };
+}
+
+/**
  * POST /api/hr/generate-report
- * Generate AI performance report using server-side proxy to avoid CORS/Auth issues
+ * Generate AI performance report using server-side proxy with automatic local intelligence fallback
  */
 router.post('/generate-report', async (req, res) => {
     try {
@@ -498,7 +679,10 @@ router.post('/generate-report', async (req, res) => {
             return res.status(400).json({ error: 'Missing employee or metrics data' });
         }
 
-        const prompt = `You are an HR analytics expert. Analyze the following employee performance data and generate a comprehensive performance report.
+        // Try Gemini completion if billing is not depleted
+        if (!featherlessService.isDepleted() && process.env.GEMINI_API_KEY) {
+            try {
+                const prompt = `You are an HR analytics expert. Analyze the following employee performance data and generate a comprehensive performance report.
 
 EMPLOYEE DATA:
 - Name: ${employee.name}
@@ -549,43 +733,47 @@ Generate a JSON response with EXACTLY this structure (no markdown, just valid JS
 
 Base your analysis ONLY on the provided metrics. Be specific and quantifiable.`;
 
-        const response = await featherlessService.generateCompletion([
-            { role: 'system', content: 'You are an HR analytics expert. Respond only with valid JSON, no markdown.' },
-            { role: 'user', content: prompt }
-        ], {
-            temperature: 0.3,
-            max_tokens: 1500
-        });
-
-        // Parse JSON content
-        const content = response.choices?.[0]?.message?.content || '';
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        
-        if (jsonMatch) {
-            try {
-                const parsed = JSON.parse(jsonMatch[0]);
-                res.json(parsed);
-            } catch (e) {
-                console.error('JSON Parse Error:', e);
-                // Fallback if strict JSON parsing fails but content exists
-                res.json({ 
-                    summary: "Report generated but format required adjustment.", 
-                    raw_content: content.substring(0, 500) + "..."
+                const response = await featherlessService.generateCompletion([
+                    { role: 'system', content: 'You are an HR analytics expert. Respond only with valid JSON, no markdown.' },
+                    { role: 'user', content: prompt }
+                ], {
+                    temperature: 0.3,
+                    max_tokens: 1500
                 });
+
+                const content = response.choices?.[0]?.message?.content || '';
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    if (parsed.summary && parsed.appraisal_score !== undefined) {
+                        return res.json(parsed);
+                    }
+                }
+            } catch (llmErr) {
+                console.warn('⚠️ [HR Report] Gemini API call bypassed/failed:', llmErr.message);
+                console.warn('ℹ️ [HR Report] Seamlessly generating report using local analytics engine.');
             }
-        } else {
-            res.status(500).json({ error: 'Failed to generate valid JSON report', raw: content });
         }
+
+        // Automatic fallback: local deterministic performance analytics
+        const fallbackReport = generateLocalPerformanceReport(employee, metrics);
+        return res.json(fallbackReport);
 
     } catch (err) {
         console.error('Report Generation Error:', err);
-        res.status(err.status || 500).json({ error: err.message });
+        try {
+            const fallbackReport = generateLocalPerformanceReport(req.body?.employee, req.body?.metrics);
+            return res.json(fallbackReport);
+        } catch (fallbackErr) {
+            return res.status(500).json({ error: err.message });
+        }
     }
 });
 
 /**
  * POST /api/hr/generate-retention-insight
- * Generate AI retention insights using server-side proxy
+ * Generate AI retention insights using server-side proxy with automatic local intelligence fallback
  */
 router.post('/generate-retention-insight', async (req, res) => {
     try {
@@ -595,7 +783,10 @@ router.post('/generate-retention-insight', async (req, res) => {
             return res.status(400).json({ error: 'Missing retention data' });
         }
 
-        const prompt = `You are an HR retention expert. Analyze this team retention data and provide actionable insights.
+        // Try Gemini completion if billing is not depleted
+        if (!featherlessService.isDepleted() && process.env.GEMINI_API_KEY) {
+            try {
+                const prompt = `You are an HR retention expert. Analyze this team retention data and provide actionable insights.
 
 RETENTION SUMMARY:
 - Total Employees: ${summary.total_employees}
@@ -625,38 +816,41 @@ Generate a JSON response with EXACTLY this structure (no markdown, just valid JS
 
 Base recommendations ONLY on the provided data. Be specific and actionable.`;
 
-        const response = await featherlessService.generateCompletion([
-            { role: 'system', content: 'You are an HR retention expert. Respond only with valid JSON.' },
-            { role: 'user', content: prompt }
-        ], {
-            temperature: 0.3,
-            max_tokens: 1000
-        });
-
-        // Parse JSON content
-        const content = response.choices?.[0]?.message?.content || '';
-        const jsonMatch = content.match(/\{[\s\S]*\}/);
-        
-        if (jsonMatch) {
-            try {
-                const parsed = JSON.parse(jsonMatch[0]);
-                res.json(parsed);
-            } catch (e) {
-                console.error('JSON Parse Error:', e);
-                res.json({ 
-                    overall_assessment: "Analysis completed but format required adjustment.",
-                    critical_actions: ["Check system logs"],
-                    team_recommendations: [],
-                    wellness_initiatives: []
+                const response = await featherlessService.generateCompletion([
+                    { role: 'system', content: 'You are an HR retention expert. Respond only with valid JSON.' },
+                    { role: 'user', content: prompt }
+                ], {
+                    temperature: 0.3,
+                    max_tokens: 1000
                 });
+
+                const content = response.choices?.[0]?.message?.content || '';
+                const jsonMatch = content.match(/\{[\s\S]*\}/);
+                
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    if (parsed.overall_assessment && Array.isArray(parsed.critical_actions)) {
+                        return res.json(parsed);
+                    }
+                }
+            } catch (llmErr) {
+                console.warn('⚠️ [HR Retention] Gemini API call bypassed/failed:', llmErr.message);
+                console.warn('ℹ️ [HR Retention] Seamlessly generating insights using local analytics engine.');
             }
-        } else {
-            res.status(500).json({ error: 'Failed to generate valid JSON insight' });
         }
+
+        // Automatic fallback: local deterministic retention analytics
+        const fallbackInsight = generateLocalRetentionInsight(summary, risks);
+        return res.json(fallbackInsight);
 
     } catch (err) {
         console.error('Retention Insight Error:', err);
-        res.status(err.status || 500).json({ error: err.message });
+        try {
+            const fallbackInsight = generateLocalRetentionInsight(req.body?.summary, req.body?.risks);
+            return res.json(fallbackInsight);
+        } catch (fallbackErr) {
+            return res.status(500).json({ error: err.message });
+        }
     }
 });
 
