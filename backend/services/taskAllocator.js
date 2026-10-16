@@ -19,6 +19,12 @@ const { runHierarchicalAllocation } = require('./hierarchicalLLM');
 // Load employee data (ASYNC from MongoDB)
 async function loadEmployeeData() {
   const users = await User.find({});
+
+  if (users.length === 0) {
+    const fallbackPath = path.join(__dirname, '../employee_data.json');
+    console.warn(`No users found in MongoDB. Loading employee data from ${fallbackPath}`);
+    return JSON.parse(fs.readFileSync(fallbackPath, 'utf8'));
+  }
   
   const mapUser = u => {
       // flattenMaps: true converts Mongoose Maps to POJOs
@@ -349,6 +355,10 @@ async function allocateTask(taskDescription, taskType = null) {
       memberScores.sort((a, b) => b.score.total - a.score.total);
 
       const bestMatch = memberScores[0];
+      if (!bestMatch) {
+        console.warn(`Skipping ${task.title}: no members available in ${team.team_name}`);
+        continue;
+      }
       assignedMembers.add(bestMatch.member.id);
 
       // Generate detailed reasoning using the new function

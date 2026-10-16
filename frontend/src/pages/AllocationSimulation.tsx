@@ -1,7 +1,20 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const API = import.meta.env.VITE_API_URL || "https://kaizen-backend-8x01.onrender.com/api";
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/$/, "");
+  }
+
+  if (typeof window !== "undefined" &&
+      (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+    return "http://localhost:8000/api";
+  }
+
+  return "https://kaizen-backend-8x01.onrender.com/api";
+};
+
+const API = getApiUrl();
 import {
   ReactFlow,
   Background,
@@ -171,13 +184,14 @@ async function saveTasksToDatabase(allocationData: AllocationData): Promise<void
 }
 
 // Sync tasks to Jira
-async function syncTasksToJira(): Promise<{success: boolean, results?: any, error?: string}> {
+async function syncTasksToJira(taskIds: string[]): Promise<{success: boolean, results?: any, error?: string}> {
   try {
     const response = await fetch(`${API}/jira/sync-tasks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ task_ids: taskIds }),
     });
 
     const result = await response.json();
@@ -188,6 +202,14 @@ async function syncTasksToJira(): Promise<{success: boolean, results?: any, erro
     }
 
     console.log('✅ Tasks synced to Jira:', result);
+    if (result.results?.failed > 0) {
+      const firstFailure = result.results.tickets?.find((ticket: { error?: string }) => ticket.error);
+      return {
+        success: false,
+        results: result.results,
+        error: firstFailure?.error || `${result.results.failed} task(s) failed to sync to Jira`,
+      };
+    }
     return { success: true, results: result.results };
   } catch (error) {
     console.error('Error syncing tasks to Jira:', error);
@@ -503,7 +525,10 @@ export default function AllocationSimulation({
     setJiraSyncing(true);
     setStatusMessage("Syncing tasks to Jira...");
     
-    const result = await syncTasksToJira();
+    const taskIds = allocationData?.tasks
+      .filter((task) => task.assigned_employee_ids.length > 0)
+      .map((task) => task.id) || [];
+    const result = await syncTasksToJira(taskIds);
     
     setJiraSyncing(false);
     

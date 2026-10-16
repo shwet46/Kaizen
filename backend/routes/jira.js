@@ -52,6 +52,29 @@ function mapRoleToTeamMember(roleRequired) {
     return TEAM[Math.floor(Math.random() * TEAM.length)];
 }
 
+async function resolveJiraAssignee(member, jiraConfig) {
+    if (!member) return null;
+
+    try {
+        const response = await axios.get(`${jiraConfig.baseUrl}/rest/api/3/user/search`, {
+            auth: {
+                username: jiraConfig.email,
+                password: jiraConfig.apiToken,
+            },
+            params: { query: member.name, maxResults: 10 },
+        });
+        const normalizedName = member.name.toLowerCase();
+        const user = response.data.find((candidate) =>
+            candidate.active && candidate.displayName?.toLowerCase().startsWith(normalizedName)
+        );
+
+        return user ? { ...member, accountId: user.accountId } : null;
+    } catch (error) {
+        console.warn(`Unable to resolve Jira user ${member.name}:`, error.message);
+        return null;
+    }
+}
+
 /**
  * Create a Jira issue
  */
@@ -74,17 +97,27 @@ async function createJiraIssue(task, assignee, jiraConfig) {
                 ]
             },
             issuetype: { name: 'Task' },
-            assignee: { accountId: assignee.accountId }
         }
     };
+
+    if (assignee?.accountId) {
+        body.fields.assignee = { accountId: assignee.accountId };
+    }
 
     const auth = {
         username: jiraConfig.email,
         password: jiraConfig.apiToken,
     };
 
-    const res = await axios.post(`${jiraConfig.baseUrl}/rest/api/3/issue`, body, { auth });
-    return res.data;
+    try {
+        const res = await axios.post(`${jiraConfig.baseUrl}/rest/api/3/issue`, body, { auth });
+        return res.data;
+    } catch (error) {
+        const jiraError = error.response?.data?.errors;
+        const jiraMessage = error.response?.data?.errorMessages;
+        const details = [...(jiraMessage || []), ...Object.values(jiraError || {})].filter(Boolean);
+        throw new Error(details.length > 0 ? details.join('; ') : error.message);
+    }
 }
 
 /**
@@ -93,16 +126,20 @@ async function createJiraIssue(task, assignee, jiraConfig) {
  */
 router.post('/sync-tasks', async (req, res) => {
     try {
+        const requestedTaskIds = Array.isArray(req.body?.task_ids)
+            ? req.body.task_ids.filter((taskId) => typeof taskId === 'string' && taskId.trim())
+            : null;
+
         // Get Jira config from env
-        const JIRA_DOMAIN = process.env.JIRA_BASE_URL.replace('https://', '').replace(/\/$/, '');
+        const JIRA_DOMAIN = process.env.JIRA_BASE_URL?.replace(/^https?:\/\//, '').replace(/\/$/, '');
         const JIRA_EMAIL = process.env.JIRA_EMAIL;
         const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN;
-        const PROJECT_KEY = 'SCRUM';
+        const PROJECT_KEY = process.env.JIRA_PROJECT_KEY;
 
-        if (!JIRA_EMAIL || !JIRA_API_TOKEN) {
+        if (!JIRA_DOMAIN || !JIRA_EMAIL || !JIRA_API_TOKEN || !PROJECT_KEY) {
             return res.status(400).json({ 
                 success: false, 
-                error: 'Jira credentials not configured' 
+                error: 'Jira configuration is incomplete. Set JIRA_BASE_URL, JIRA_PROJECT_KEY, JIRA_EMAIL, and JIRA_API_TOKEN.'
             });
         }
 
@@ -114,13 +151,23 @@ router.post('/sync-tasks', async (req, res) => {
         };
 
         // Fetch all pending tasks that are not synced to Jira
-        const tasks = await Task.find({ 
-            status: 'pending',
-            $or: [
-                { synced_to_jira: false },
-                { synced_to_jira: { $exists: false } }
-            ]
-        }).sort({ deadline: 1 });
+        const taskFilter = requestedTaskIds
+            ? {
+                task_id: { $in: requestedTaskIds },
+                $or: [
+                    { synced_to_jira: false },
+                    { synced_to_jira: { $exists: false } }
+                ]
+            }
+            : {
+                status: 'pending',
+                $or: [
+                    { synced_to_jira: false },
+                    { synced_to_jira: { $exists: false } }
+                ]
+            };
+
+        const tasks = await Task.find(taskFilter).sort({ deadline: 1 });
 
         console.log(`Found ${tasks.length} tasks to sync to Jira`);
 
@@ -141,10 +188,11 @@ router.post('/sync-tasks', async (req, res) => {
             }
 
             // Find team member for this task
-            const assignee = mapRoleToTeamMember(task.role_required);
+            const mappedMember = mapRoleToTeamMember(task.role_required);
 
             try {
-                console.log(`📝 Creating Jira issue: ${task.title} for ${assignee.name}`);
+                const assignee = await resolveJiraAssignee(mappedMember, jiraConfig);
+                console.log(`📝 Creating Jira issue: ${task.title}${assignee ? ` for ${assignee.name}` : ' (unassigned)'}`);
                 
                 const issue = await createJiraIssue(task, assignee, jiraConfig);
 
@@ -161,18 +209,18 @@ router.post('/sync-tasks', async (req, res) => {
                     task_id: task.task_id,
                     jira_key: issue.key,
                     jira_id: issue.id,
-                    assignee: assignee.name,
+                    assignee: assignee?.name || null,
                     title: task.title
                 });
 
-                console.log(`   ✅ Created: ${issue.key} → Assigned to ${assignee.name}`);
+                console.log(`   ✅ Created: ${issue.key}${assignee ? ` → Assigned to ${assignee.name}` : ' (unassigned)'}`);
             } catch (err) {
                 console.error(`   ❌ Failed to create Jira issue for ${task.task_id}:`, err.message);
                 results.failed++;
                 results.tickets.push({
                     task_id: task.task_id,
                     error: err.message,
-                    assignee: assignee.name,
+                    assignee: mappedMember?.name || null,
                     title: task.title
                 });
             }
