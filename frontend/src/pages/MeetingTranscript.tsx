@@ -4,7 +4,11 @@ import { Mic, MicOff, UploadCloud, FileAudio, Check, Square, RotateCcw } from "l
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { transcribeAudioBlob } from "@/lib/voice-service";
 
-const API = import.meta.env.VITE_API_URL || "https://kaizen-backend-8x01.onrender.com/api";
+const API = import.meta.env.VITE_API_URL || (
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:8000/api"
+    : "https://kaizen-backend-8x01.onrender.com/api"
+);
 import { Button } from "@/components/ui/button";
 import {
   LiaArrowLeftSolid as ArrowLeft,
