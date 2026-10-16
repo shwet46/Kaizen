@@ -22,7 +22,9 @@ import {
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API_URL = import.meta.env.VITE_VOICE_CHATBOT_API || 'https://kaizen-bot-awcf.onrender.com';
+import { getVoiceBotApiUrl, transcribeAudioBlob, synthesizeSpeechAudio } from '@/lib/voice-service';
+
+const API_URL = getVoiceBotApiUrl();
 // Axios timeout constants (ms)
 const GREETING_TIMEOUT_MS = 8000;  // greeting can be slow on cold start
 const CHAT_TIMEOUT_MS = 30000;     // chat queries can be slow on free tier
@@ -79,6 +81,9 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
     const objectUrlRef = useRef<string | null>(null);
     const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
+    const isExplicitStopRef = useRef<boolean>(false);
+    const isSwitchingFallbackRef = useRef<boolean>(false);
+    const pendingSubmitVoiceRef = useRef<boolean>(false);
 
     const addMessage = useCallback((type: 'user' | 'assistant', text: string, audio?: string, isVoice?: boolean) => {
         const newMessage: Message = {
@@ -216,6 +221,10 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
     // ===== SPEECH TO TEXT ENGINE =====
     const startRecording = async () => {
         setSttNotice(null);
+        isExplicitStopRef.current = false;
+        isSwitchingFallbackRef.current = false;
+        pendingSubmitVoiceRef.current = false;
+
         const speechWindow = window as SpeechRecognitionWindow;
         const SpeechRecognitionClass = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
 
@@ -256,11 +265,25 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
                         stopRecording();
                     } else {
                         // Fallback to MediaRecorder + Google Cloud STT
+                        isSwitchingFallbackRef.current = true;
+                        try {
+                            recognition.abort();
+                        } catch {}
                         startMediaRecorderFallback();
                     }
                 };
 
                 recognition.onend = () => {
+                    if (isSwitchingFallbackRef.current) return;
+
+                    // If user did not click stop, keep listening through brief speech pauses
+                    if (!isExplicitStopRef.current && isRecording) {
+                        try {
+                            recognition.start();
+                            return;
+                        } catch {}
+                    }
+
                     setIsRecording(false);
                     setRecordingMode(null);
                     speechRecognitionRef.current = null;
@@ -281,6 +304,7 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
     };
 
     const startMediaRecorderFallback = async () => {
+        isSwitchingFallbackRef.current = false;
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaStreamRef.current = stream;
@@ -294,14 +318,16 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
             recorder.onstop = async () => {
                 const mimeType = recorder.mimeType || 'audio/webm';
                 const audioBlob = new Blob(chunks, { type: mimeType });
-                stream.getTracks().forEach(track => track.stop());
-                mediaStreamRef.current = null;
+                if (mediaStreamRef.current) {
+                    mediaStreamRef.current.getTracks().forEach(track => track.stop());
+                    mediaStreamRef.current = null;
+                }
 
                 // Send to backend Google Cloud STT
                 await transcribeAudioWithGCP(audioBlob);
             };
 
-            recorder.start();
+            recorder.start(250);
             setMediaRecorder(recorder);
             setIsRecording(true);
             setRecordingMode('gcp');
@@ -317,40 +343,51 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
         setIsProcessing(true);
         setSttNotice('Transcribing speech with Google Cloud STT...');
         try {
-            const formData = new FormData();
-            formData.append('audio', audioBlob, 'recording.webm');
-            formData.append('language', 'en-IN');
-
-            const response = await axios.post(`${API_URL}/api/voice/transcribe`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            const transcript = response.data?.transcript || '';
+            const transcript = await transcribeAudioBlob(audioBlob, 'en-IN');
             if (transcript.trim()) {
-                setTextInput(transcript.trim());
+                const spokenQuery = transcript.trim();
+                setTextInput(spokenQuery);
                 setSttNotice(null);
+
+                // If user clicked "Done & Send", automatically submit now that audio is transcribed!
+                if (pendingSubmitVoiceRef.current) {
+                    pendingSubmitVoiceRef.current = false;
+                    setTextInput('');
+                    void sendTextMessage(spokenQuery, true);
+                }
             } else {
                 setSttNotice('No speech detected. Please speak into the microphone and try again.');
+                pendingSubmitVoiceRef.current = false;
             }
         } catch (err) {
             console.error('GCP STT failed:', err);
             setSttNotice('Google Cloud transcription service was unreachable. Please type your question.');
+            pendingSubmitVoiceRef.current = false;
         } finally {
             setIsProcessing(false);
+            setIsRecording(false);
+            setRecordingMode(null);
         }
     };
 
     const stopRecording = () => {
+        isExplicitStopRef.current = true;
         if (speechRecognitionRef.current) {
-            speechRecognitionRef.current.stop();
+            try {
+                speechRecognitionRef.current.stop();
+            } catch {}
             speechRecognitionRef.current = null;
         }
         if (mediaRecorder && mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
+            try {
+                mediaRecorder.stop();
+            } catch {}
             setMediaRecorder(null);
         }
         if (mediaStreamRef.current) {
-            mediaStreamRef.current.getTracks().forEach(track => track.stop());
+            try {
+                mediaStreamRef.current.getTracks().forEach(track => track.stop());
+            } catch {}
             mediaStreamRef.current = null;
         }
         setIsRecording(false);
@@ -359,14 +396,21 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
     };
 
     const handleVoiceDoneAndSubmit = async () => {
-        stopRecording();
-        setTimeout(() => {
-            const query = textInput.trim();
-            if (query) {
-                setTextInput('');
-                void sendTextMessage(query, true);
-            }
-        }, 300);
+        if (recordingMode === 'gcp') {
+            // Signal onstop to send query once transcription finishes
+            pendingSubmitVoiceRef.current = true;
+            stopRecording();
+        } else {
+            // Native browser speech mode: transcript is already in textInput
+            stopRecording();
+            setTimeout(() => {
+                const query = textInput.trim();
+                if (query) {
+                    setTextInput('');
+                    void sendTextMessage(query, true);
+                }
+            }, 100);
+        }
     };
 
     // ===== AUDIO PLAYBACK & GCP TTS =====
@@ -391,8 +435,10 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
         }
 
         if (audioBase64 && audioRef.current) {
+            if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
             const blob = base64ToBlob(audioBase64, 'audio/wav');
             const url = URL.createObjectURL(blob);
+            objectUrlRef.current = url;
             audioRef.current.src = url;
             audioRef.current.play().catch(() => {});
             setIsPlayingAudio(messageId);
@@ -410,13 +456,12 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
                 .replace(/[•-]/g, ' ')
                 .replace(/\n+/g, ' ');
 
-            const res = await axios.post(`${API_URL}/api/voice/synthesize`, {
-                text: cleanText,
-                language: 'en-IN'
-            }, { responseType: 'blob' });
+            const audioBlob = await synthesizeSpeechAudio(cleanText, 'en-IN');
 
             if (audioRef.current) {
-                const url = URL.createObjectURL(res.data);
+                if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+                const url = URL.createObjectURL(audioBlob);
+                objectUrlRef.current = url;
                 audioRef.current.src = url;
                 audioRef.current.play().catch(() => {});
                 setIsPlayingAudio(messageId);

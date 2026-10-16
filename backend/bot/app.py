@@ -442,7 +442,8 @@ def internal_error(error):
 # ============= MAIN =============
 
 if __name__ == '__main__':
-    port = int(os.getenv('PORT') or os.getenv('BOT_PORT', 5001))
+    # Prioritize BOT_PORT (5001) over backend PORT (8000) to prevent port collision
+    port = int(os.getenv('BOT_PORT') or (os.getenv('PORT') if os.getenv('PORT') != '8000' else None) or 5001)
     debug = os.getenv('FLASK_ENV') == 'development'
     
     print("=" * 60)

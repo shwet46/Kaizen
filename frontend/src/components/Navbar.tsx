@@ -51,9 +51,6 @@ export function Navbar() {
           </div>
 
           <div className="navbar-cta">
-            <Link to="/dashboard" className="btn btn-ghost" style={{ fontSize: '0.8125rem' }}>
-              Sign in
-            </Link>
             <Link to="/dashboard" className="btn btn-primary btn-sm">
               Get Started
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

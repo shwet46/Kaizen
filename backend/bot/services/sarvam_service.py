@@ -100,13 +100,16 @@ class SarvamService:
         """Convert any audio format to 16kHz mono LINEAR16 WAV using pydub/ffmpeg"""
         try:
             from pydub import AudioSegment
+            from pydub.utils import get_ffmpeg_version
+            if not get_ffmpeg_version():
+                raise RuntimeError("FFmpeg is not installed or not in the system's PATH. Please install FFmpeg to enable audio conversion.")
             segment = AudioSegment.from_file(io.BytesIO(audio_data))
             segment = segment.set_frame_rate(16000).set_channels(1).set_sample_width(2)
             out = io.BytesIO()
             segment.export(out, format="wav")
             return out.getvalue()
         except Exception as e:
-            print(f"Audio conversion notice: {e}")
+            print(f"Audio conversion error: {e}")
             return None
     
     @staticmethod
@@ -224,18 +227,23 @@ class SarvamService:
             else:
                 # Fallback: detect format from the browser MIME type or magic bytes.
                 content_type = (mime_type or '').lower()
+                print(f"Attempting fallback with content type: {content_type}")
                 if 'webm' in content_type or audio_data.startswith(b'\x1a\x45\xdf\xa3'):
                     encoding = speech.RecognitionConfig.AudioEncoding.WEBM_OPUS
                     sample_rate = 48000
+                    print("Fallback: Detected WEBM_OPUS")
                 elif 'ogg' in content_type or audio_data.startswith(b'OggS'):
                     encoding = speech.RecognitionConfig.AudioEncoding.OGG_OPUS
                     sample_rate = 48000
+                    print("Fallback: Detected OGG_OPUS")
                 elif audio_data.startswith(b'RIFF'):
                     encoding = speech.RecognitionConfig.AudioEncoding.LINEAR16
                     sample_rate = 16000
+                    print("Fallback: Detected LINEAR16 (WAV)")
                 else:
                     encoding = speech.RecognitionConfig.AudioEncoding.LINEAR16
                     sample_rate = 16000
+                    print("Fallback: Assuming LINEAR16")
 
                 config = speech.RecognitionConfig(
                     encoding=encoding,

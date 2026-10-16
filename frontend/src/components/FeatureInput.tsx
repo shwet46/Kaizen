@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mic, MicOff } from "lucide-react";
+import { Mic, MicOff, Check, Square } from "lucide-react";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import {
   LiaPaperPlaneSolid as Send,
   LiaSpinnerSolid as Loader2,
@@ -83,78 +84,38 @@ const FeatureInput = ({ onSubmit, isProcessing }: FeatureInputProps) => {
   const [autoGenerateTech, setAutoGenerateTech] = useState(false);
   const [priority, setPriority] = useState<Priority>("medium");
   const [inputError, setInputError] = useState<string | null>(null);
-  const [isRecordingField, setIsRecordingField] = useState<'feature' | 'details' | null>(null);
-  const speechRecognitionRef = useRef<any>(null);
 
-  const toggleSpeechRecognition = (field: 'feature' | 'details') => {
-    if (isRecordingField === field) {
-      if (speechRecognitionRef.current) {
-        speechRecognitionRef.current.stop();
-        speechRecognitionRef.current = null;
+  const {
+    isRecording,
+    recordingMode,
+    activeField: isRecordingField,
+    interimTranscript,
+    isTranscribing,
+    errorMessage: dictationError,
+    toggle: toggleVoiceDictate,
+    stop: stopVoiceDictate,
+    cancel: cancelVoiceDictate,
+    clearError: clearDictationError,
+  } = useVoiceDictation({
+    language: 'en-IN',
+    onTranscriptUpdate: (fullText) => {
+      if (isRecordingField === 'feature') {
+        setFeature(fullText);
+        setInputError(null);
+      } else if (isRecordingField === 'details') {
+        setDetails(fullText);
       }
-      setIsRecordingField(null);
-      return;
-    }
+    },
+    onError: (err) => {
+      setInputError(err);
+    },
+  });
 
-    if (speechRecognitionRef.current) {
-      speechRecognitionRef.current.stop();
-      speechRecognitionRef.current = null;
-    }
-
-    const speechWindow = window as any;
-    const SpeechRecognition = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      setInputError("Speech recognition is not supported in this browser. Please use Chrome or Edge.");
-      return;
-    }
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'en-IN';
-
-      recognition.onresult = (event: any) => {
-        let finalT = '';
-        let interimT = '';
-        for (let i = 0; i < event.results.length; i++) {
-          const item = event.results[i];
-          const text = item[0]?.transcript || '';
-          if (item.isFinal) {
-            finalT += text + ' ';
-          } else {
-            interimT += text;
-          }
-        }
-        const spoken = (finalT + interimT).replace(/\s+/g, ' ').trim();
-        if (spoken) {
-          if (field === 'feature') {
-            setFeature(spoken);
-            setInputError(null);
-          } else {
-            setDetails(spoken);
-          }
-        }
-      };
-
-      recognition.onerror = (event: any) => {
-        if (event.error === 'no-speech' || event.error === 'aborted') return;
-        setIsRecordingField(null);
-      };
-
-      recognition.onend = () => {
-        setIsRecordingField(null);
-        speechRecognitionRef.current = null;
-      };
-
-      recognition.start();
-      speechRecognitionRef.current = recognition;
-      setIsRecordingField(field);
-    } catch (err) {
-      console.warn("Could not start speech recognition:", err);
-      setIsRecordingField(null);
-    }
+  const handleToggleVoice = (field: 'feature' | 'details') => {
+    setInputError(null);
+    clearDictationError();
+    const currentText = field === 'feature' ? feature : details;
+    toggleVoiceDictate(field, currentText);
   };
 
   // Check if input looks like junk/gibberish
@@ -233,19 +194,41 @@ const FeatureInput = ({ onSubmit, isProcessing }: FeatureInputProps) => {
             <label className="block text-[10px] font-sans font-semibold uppercase tracking-widest text-muted-foreground">
               Feature / Sprint Name
             </label>
-            <button
-              type="button"
-              onClick={() => toggleSpeechRecognition('feature')}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-sans font-medium transition-all cursor-pointer ${
-                isRecordingField === 'feature'
-                  ? 'bg-[#EA4335] text-white animate-pulse'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-              title="Dictate feature name with Speech-to-Text"
-            >
-              {isRecordingField === 'feature' ? <MicOff className="w-3 h-3" /> : <Mic className="w-3 h-3 text-[#1A73E8]" />}
-              <span>{isRecordingField === 'feature' ? 'Listening...' : 'Voice Dictate'}</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              {isRecordingField === 'feature' && (
+                <button
+                  type="button"
+                  onClick={stopVoiceDictate}
+                  className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-sans font-semibold bg-[#137333] text-white hover:bg-[#0f5c29] cursor-pointer transition-all shadow-xs"
+                  title="Done & apply transcribed feature name"
+                >
+                  <Check className="w-3 h-3" />
+                  <span>Done</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleToggleVoice('feature')}
+                className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-sans font-semibold transition-all cursor-pointer ${
+                  isRecordingField === 'feature'
+                    ? 'bg-[#EA4335] text-white animate-pulse shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-border/80'
+                }`}
+                title={isRecordingField === 'feature' ? 'Stop voice recording' : 'Dictate feature name with Speech-to-Text'}
+              >
+                {isRecordingField === 'feature' ? (
+                  <>
+                    <MicOff className="w-3 h-3" />
+                    <span>Listening ({recordingMode === 'browser' ? 'Browser STT' : 'GCP STT'})</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-3 h-3 text-[#1A73E8]" />
+                    <span>Voice Dictate</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
           <div className="relative">
             <input
@@ -253,37 +236,96 @@ const FeatureInput = ({ onSubmit, isProcessing }: FeatureInputProps) => {
               value={feature}
               onChange={(e) => {
                 setFeature(e.target.value);
-                setInputError(null); // Clear error when typing
+                setInputError(null);
               }}
-              placeholder={isRecordingField === 'feature' ? 'Listening... Speak your feature name' : 'e.g., Implement user authentication system'}
-              className={`w-full pl-3.5 pr-10 py-3 rounded-xl bg-background border text-foreground placeholder:text-muted-foreground font-sans text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#4285F4]/30 focus:border-[#4285F4] transition-all shadow-sm ${
-                inputError ? 'border-destructive' : 'border-border/80'
+              placeholder={
+                isRecordingField === 'feature'
+                  ? interimTranscript
+                    ? `Heard: "${interimTranscript}"...`
+                    : 'Listening... Speak your feature name'
+                  : 'e.g., Implement user authentication system'
+              }
+              className={`w-full pl-3.5 pr-20 py-3 rounded-xl bg-background border text-foreground placeholder:text-muted-foreground font-sans text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-[#4285F4]/30 focus:border-[#4285F4] transition-all shadow-sm ${
+                inputError
+                  ? 'border-destructive'
+                  : isRecordingField === 'feature'
+                  ? 'border-[#EA4335] ring-2 ring-[#EA4335]/20 bg-[#FCE8E6]/20'
+                  : 'border-border/80'
               }`}
               disabled={isProcessing}
             />
-            <button
-              type="button"
-              onClick={() => toggleSpeechRecognition('feature')}
-              disabled={isProcessing}
-              className={`absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg transition-all cursor-pointer ${
-                isRecordingField === 'feature'
-                  ? 'bg-[#EA4335] text-white animate-pulse'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-              title={isRecordingField === 'feature' ? 'Stop voice recording' : 'Dictate with Speech-to-Text'}
-            >
-              {isRecordingField === 'feature' ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            </button>
+
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {isRecordingField === 'feature' && (
+                <div className="flex items-center gap-0.5 px-1 py-0.5 mr-1">
+                  <motion.div animate={{ scaleY: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 0.5 }} className="w-0.5 h-3.5 bg-[#EA4335] rounded-full" />
+                  <motion.div animate={{ scaleY: [0.7, 1, 0.7] }} transition={{ repeat: Infinity, duration: 0.5, delay: 0.15 }} className="w-0.5 h-3.5 bg-[#EA4335] rounded-full" />
+                  <motion.div animate={{ scaleY: [0.4, 0.9, 0.4] }} transition={{ repeat: Infinity, duration: 0.5, delay: 0.3 }} className="w-0.5 h-3.5 bg-[#EA4335] rounded-full" />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => handleToggleVoice('feature')}
+                disabled={isProcessing}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  isRecordingField === 'feature'
+                    ? 'bg-[#EA4335] text-white'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+                title={isRecordingField === 'feature' ? 'Stop voice recording' : 'Dictate with Speech-to-Text'}
+              >
+                {isRecordingField === 'feature' ? <Square className="w-3.5 h-3.5 fill-current" /> : <Mic className="w-4 h-4 text-[#1A73E8]" />}
+              </button>
+            </div>
           </div>
+
+          {/* Real-time Interim Speech Bubble Preview */}
+          {isRecordingField === 'feature' && (
+            <div className="mt-1.5 px-3 py-1.5 rounded-lg bg-[#E8F0FE] border border-[#4285F4]/30 text-xs font-sans text-[#1A73E8] flex items-center justify-between">
+              <span className="flex items-center gap-1.5 truncate">
+                <span className="w-2 h-2 rounded-full bg-[#EA4335] animate-pulse" />
+                {interimTranscript ? (
+                  <span className="truncate">Live: "{interimTranscript}"</span>
+                ) : (
+                  <span>Listening... Speak into microphone</span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={stopVoiceDictate}
+                className="text-[11px] font-semibold text-[#137333] hover:underline cursor-pointer ml-2 shrink-0"
+              >
+                Done
+              </button>
+            </div>
+          )}
+
+          {/* Transcribing Indicator */}
+          {isTranscribing && isRecordingField === 'feature' && (
+            <div className="mt-1.5 px-3 py-1 rounded-lg bg-[#FEF7E0] border border-[#FBBC05]/40 text-xs font-sans text-[#B06000] flex items-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FBBC05]" />
+              <span>Transcribing via Google Cloud STT...</span>
+            </div>
+          )}
+
           {/* Error Message */}
           {inputError && (
             <motion.div
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-2 p-2.5 rounded-lg bg-destructive/10 border border-destructive/40 text-destructive text-xs font-sans flex items-center gap-2"
+              className="mt-2 p-2.5 rounded-lg bg-destructive/10 border border-destructive/40 text-destructive text-xs font-sans flex items-center justify-between gap-2"
             >
-              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>{inputError}</span>
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{inputError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInputError(null)}
+                className="hover:opacity-70 text-xs cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+              </button>
             </motion.div>
           )}
         </div>
@@ -559,28 +601,113 @@ const FeatureInput = ({ onSubmit, isProcessing }: FeatureInputProps) => {
             <label className="block text-[10px] font-sans font-semibold uppercase tracking-widest text-muted-foreground">
               Additional Requirements (Optional)
             </label>
-            <button
-              type="button"
-              onClick={() => toggleSpeechRecognition('details')}
-              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-sans font-medium transition-all cursor-pointer ${
-                isRecordingField === 'details'
-                  ? 'bg-[#EA4335] text-white animate-pulse'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-              title="Dictate additional requirements with Speech-to-Text"
-            >
-              {isRecordingField === 'details' ? <MicOff className="w-3 h-3" /> : <Mic className="w-3 h-3 text-[#1A73E8]" />}
-              <span>{isRecordingField === 'details' ? 'Listening...' : 'Voice Dictate'}</span>
-            </button>
+            <div className="flex items-center gap-1.5">
+              {isRecordingField === 'details' && (
+                <button
+                  type="button"
+                  onClick={stopVoiceDictate}
+                  className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-sans font-semibold bg-[#137333] text-white hover:bg-[#0f5c29] cursor-pointer transition-all shadow-xs"
+                  title="Done & apply transcribed details"
+                >
+                  <Check className="w-3 h-3" />
+                  <span>Done</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => handleToggleVoice('details')}
+                className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-sans font-semibold transition-all cursor-pointer ${
+                  isRecordingField === 'details'
+                    ? 'bg-[#EA4335] text-white animate-pulse shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted border border-border/80'
+                }`}
+                title={isRecordingField === 'details' ? 'Stop voice recording' : 'Dictate additional requirements with Speech-to-Text'}
+              >
+                {isRecordingField === 'details' ? (
+                  <>
+                    <MicOff className="w-3 h-3" />
+                    <span>Listening ({recordingMode === 'browser' ? 'Browser STT' : 'GCP STT'})</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="w-3 h-3 text-[#1A73E8]" />
+                    <span>Voice Dictate</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-          <textarea
-            value={details}
-            onChange={(e) => setDetails(e.target.value)}
-            placeholder={isRecordingField === 'details' ? 'Listening... Speak additional details or constraints' : 'Specify any additional requirements, constraints, or priorities...'}
-            rows={2}
-            className="w-full px-3.5 py-2.5 rounded-xl bg-background border border-border/80 text-foreground placeholder:text-muted-foreground font-sans text-sm focus:outline-none focus:ring-2 focus:ring-[#4285F4]/30 focus:border-[#4285F4] transition-all resize-none shadow-sm"
-            disabled={isProcessing}
-          />
+          <div className="relative">
+            <textarea
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              placeholder={
+                isRecordingField === 'details'
+                  ? interimTranscript
+                    ? `Heard: "${interimTranscript}"...`
+                    : 'Listening... Speak additional details, constraints, or tech requirements'
+                  : 'Specify any additional requirements, constraints, or priorities...'
+              }
+              rows={2}
+              className={`w-full pl-3.5 pr-12 py-2.5 rounded-xl bg-background border text-foreground placeholder:text-muted-foreground font-sans text-sm focus:outline-none focus:ring-2 focus:ring-[#4285F4]/30 focus:border-[#4285F4] transition-all resize-none shadow-sm ${
+                isRecordingField === 'details'
+                  ? 'border-[#EA4335] ring-2 ring-[#EA4335]/20 bg-[#FCE8E6]/20'
+                  : 'border-border/80'
+              }`}
+              disabled={isProcessing}
+            />
+            <div className="absolute right-2.5 top-3 flex items-center gap-1">
+              {isRecordingField === 'details' && (
+                <div className="flex items-center gap-0.5 px-1 py-0.5 mr-1">
+                  <motion.div animate={{ scaleY: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 0.5 }} className="w-0.5 h-3.5 bg-[#EA4335] rounded-full" />
+                  <motion.div animate={{ scaleY: [0.7, 1, 0.7] }} transition={{ repeat: Infinity, duration: 0.5, delay: 0.15 }} className="w-0.5 h-3.5 bg-[#EA4335] rounded-full" />
+                  <motion.div animate={{ scaleY: [0.4, 0.9, 0.4] }} transition={{ repeat: Infinity, duration: 0.5, delay: 0.3 }} className="w-0.5 h-3.5 bg-[#EA4335] rounded-full" />
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => handleToggleVoice('details')}
+                disabled={isProcessing}
+                className={`p-1.5 rounded-lg transition-all cursor-pointer ${
+                  isRecordingField === 'details'
+                    ? 'bg-[#EA4335] text-white'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+                title={isRecordingField === 'details' ? 'Stop voice recording' : 'Dictate requirements with Speech-to-Text'}
+              >
+                {isRecordingField === 'details' ? <Square className="w-3.5 h-3.5 fill-current" /> : <Mic className="w-4 h-4 text-[#1A73E8]" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Real-time Interim Speech Bubble Preview for Details */}
+          {isRecordingField === 'details' && (
+            <div className="mt-1.5 px-3 py-1.5 rounded-lg bg-[#E8F0FE] border border-[#4285F4]/30 text-xs font-sans text-[#1A73E8] flex items-center justify-between">
+              <span className="flex items-center gap-1.5 truncate">
+                <span className="w-2 h-2 rounded-full bg-[#EA4335] animate-pulse" />
+                {interimTranscript ? (
+                  <span className="truncate">Live: "{interimTranscript}"</span>
+                ) : (
+                  <span>Listening... Speak into microphone</span>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={stopVoiceDictate}
+                className="text-[11px] font-semibold text-[#137333] hover:underline cursor-pointer ml-2 shrink-0"
+              >
+                Done
+              </button>
+            </div>
+          )}
+
+          {/* Transcribing Indicator for Details */}
+          {isTranscribing && isRecordingField === 'details' && (
+            <div className="mt-1.5 px-3 py-1 rounded-lg bg-[#FEF7E0] border border-[#FBBC05]/40 text-xs font-sans text-[#B06000] flex items-center gap-2">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FBBC05]" />
+              <span>Transcribing via Google Cloud STT...</span>
+            </div>
+          )}
         </div>
 
         {/* Submit Button */}

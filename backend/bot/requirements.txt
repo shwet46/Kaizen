@@ -9,3 +9,6 @@ google-cloud-speech>=2.26.0
 google-cloud-texttospeech>=2.17.0
 pydub==0.25.1
 gunicorn>=21.2.0
+# Note: pydub requires FFmpeg for audio conversion.
+# Please install FFmpeg on your system and ensure it's in the system's PATH.
+

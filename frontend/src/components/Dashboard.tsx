@@ -10,7 +10,7 @@ import {
   FaArrowsRotate as RefreshCw,
   FaCheck as Check,
   FaCircleXmark as XCircle,
-  FaCircleCheck as CheckCircle
+  FaCircleCheck as CheckCircle,
 } from "react-icons/fa6"
 
 const API = import.meta.env.VITE_API_URL || "https://kaizen-backend-8x01.onrender.com/api"
@@ -216,7 +216,7 @@ const FloatingParticle = ({ delay, duration, size, startX, startY }: {
 // MAIN DASHBOARD COMPONENT
 // ============================================
 
-export function Dashboard({ githubConnected, onConnectGitHub }: DashboardProps) {
+export function Dashboard({ onNavigate, githubConnected, onConnectGitHub }: DashboardProps) {
   const [health, setHealth] = useState<Health | null>(null)
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
@@ -374,7 +374,6 @@ export function Dashboard({ githubConnected, onConnectGitHub }: DashboardProps) 
       </div>
 
       <div className="relative z-10 w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6 sm:space-y-8">
-        
         {/* ========================================================= */}
         {/* 1. CORE DELIVERY TELEMETRY                                */}
         {/* ========================================================= */}

@@ -12,7 +12,6 @@ import HRRetention from "@/pages/HRRetention"
 import AllocationSimulation from "@/pages/AllocationSimulation"
 import MeetingTranscript from "@/pages/MeetingTranscript"
 import LandingPage from "@/pages/LandingPage"
-import { QuickActionsPanel } from "@/components/QuickActionsPanel"
 import { VoiceChatbot } from "@/components/VoiceChatbot/VoiceChatbot"
 import { motion } from "framer-motion"
 import {
@@ -57,7 +56,6 @@ interface AllocationData {
   total_hours: number;
 }
 
-type Health = { status: string; db?: string }
 type UserRole = 'pm' | 'hr'
 type PMTab = 'dashboard' | 'graph' | 'smart-allocate' | 'delay-prediction' | 'finance' | 'roles' | 'allocation-simulation' | 'meeting-transcript'
 type HRTab = 'hr-performance' | 'hr-retention'
@@ -91,7 +89,6 @@ function App() {
   const showLanding = location.pathname === '/'
   const activeTab = tabForPath(location.pathname)
 
-  const [health, setHealth] = useState<Health | null>(null)
   const [githubConnected, setGithubConnected] = useState<boolean | null>(null)
   const [oauthMessage, setOauthMessage] = useState<string | null>(null)
 
@@ -105,8 +102,7 @@ function App() {
     techStack: string[];
   } | null>(null)
 
-  // Drawer and mobile menu state
-  const [quickActionsDrawerOpen, setQuickActionsDrawerOpen] = useState(false)
+  // Mobile menu state
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [voiceOpenSignal, setVoiceOpenSignal] = useState(0)
 
@@ -120,14 +116,6 @@ function App() {
   // No role sync effect needed, userRole is derived during render.
 
   // --- Effects ---
-
-  // Health Check
-  useEffect(() => {
-    fetch(`${API}/health`)
-      .then((r) => r.json())
-      .then(setHealth)
-      .catch(() => setHealth({ status: "error" }))
-  }, [])
 
   // GitHub Auth Status
   useEffect(() => {
@@ -170,24 +158,15 @@ function App() {
         <DashboardNavbar
           activeTab={activeTab}
           userRole={userRole}
-          health={health}
           mobileMenuOpen={mobileMenuOpen}
           onBackToLanding={() => navigate('/')}
           onNavigateTab={handleNavigateTab}
           onRoleSwitch={handleRoleSwitch}
           onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
-          onOpenQuickActions={() => setQuickActionsDrawerOpen(true)}
         />
         <div className="relative z-0 h-[calc(100vh-7rem)] min-h-0">
           <KnowledgeGraph3D onBack={() => navigate(dashboardPaths['dashboard'])} />
         </div>
-        <QuickActionsPanel
-          onNavigate={handleNavigateTab}
-          variant="drawer"
-          isOpen={quickActionsDrawerOpen}
-          onClose={() => setQuickActionsDrawerOpen(false)}
-          onTriggerVoice={() => setVoiceOpenSignal((signal) => signal + 1)}
-        />
         <VoiceChatbot openSignal={voiceOpenSignal} />
       </div>
     )
@@ -198,13 +177,11 @@ function App() {
       <DashboardNavbar
         activeTab={activeTab}
         userRole={userRole}
-        health={health}
         mobileMenuOpen={mobileMenuOpen}
         onBackToLanding={() => navigate('/')}
         onNavigateTab={handleNavigateTab}
         onRoleSwitch={handleRoleSwitch}
         onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)}
-        onOpenQuickActions={() => setQuickActionsDrawerOpen(true)}
       />
 
       {/* OAuth Notification */}
@@ -307,17 +284,8 @@ function App() {
         )}
       </div>
 
-      {/* Quick Actions Drawer (Overlay Mode) */}
-      <QuickActionsPanel
-        onNavigate={handleNavigateTab}
-        variant="drawer"
-        isOpen={quickActionsDrawerOpen}
-        onClose={() => setQuickActionsDrawerOpen(false)}
-        onTriggerVoice={() => setVoiceOpenSignal((signal) => signal + 1)}
-      />
-
-      {/* Voice Chatbot Widget - Available on all views */}
-      <VoiceChatbot openSignal={voiceOpenSignal} />
+      {/* Voice Chatbot Widget - Available on subpages (removed from main dashboard) */}
+      {activeTab !== 'dashboard' && <VoiceChatbot openSignal={voiceOpenSignal} />}
     </div>
   )
 }
