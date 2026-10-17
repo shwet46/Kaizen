@@ -29,6 +29,7 @@ app.use(
       if (
         allowedOrigins.includes(cleanOrigin) ||
         cleanOrigin.endsWith('.onrender.com') ||
+        cleanOrigin.endsWith('.run.app') ||
         cleanOrigin.includes('localhost') ||
         cleanOrigin.includes('127.0.0.1')
       ) {

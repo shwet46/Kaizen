@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getEnv } from './config';
 
 // Check for native browser SpeechRecognition
 export function hasNativeSpeechRecognition(): boolean {
@@ -64,9 +65,11 @@ export async function transcribeAudioBlob(blob: Blob, language: string): Promise
 }
 
 export function getVoiceBotApiUrl(): string {
-    return import.meta.env.VITE_BOT_API_URL || (
+    const envUrl = getEnv('VITE_BOT_API_URL') || getEnv('VITE_VOICE_CHATBOT_API');
+    if (envUrl) return envUrl.replace(/\/$/, '');
+    return (
         window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-            ? 'http://localhost:8001'
+            ? 'http://localhost:5001'
             : 'https://kaizen-bot-backend.onrender.com'
     );
 }

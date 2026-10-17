@@ -1,0 +1,55 @@
+# ----------------------------------------------------
+# 1. Build Stage
+# ----------------------------------------------------
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy dependency manifests
+COPY package*.json ./
+
+# Install dependencies cleanly
+RUN npm ci || npm install
+
+# Copy application source
+COPY . .
+
+# Build-time arguments injected during `docker build` or Cloud Build
+ARG VITE_API_URL
+ARG VITE_BOT_API_URL
+ARG VITE_VOICE_CHATBOT_API
+ARG VITE_GEMINI_API_KEY
+ARG VITE_FEATHERLESS_API_KEY
+
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_BOT_API_URL=$VITE_BOT_API_URL
+ENV VITE_VOICE_CHATBOT_API=$VITE_VOICE_CHATBOT_API
+ENV VITE_GEMINI_API_KEY=$VITE_GEMINI_API_KEY
+ENV VITE_FEATHERLESS_API_KEY=$VITE_FEATHERLESS_API_KEY
+
+# Build Vite production assets into /dist
+RUN npm run build
+
+# ----------------------------------------------------
+# 2. Production Stage (Lightweight Nginx Alpine)
+# ----------------------------------------------------
+FROM nginx:alpine
+
+# Default port for Google Cloud Run
+ENV PORT=8080
+
+# Copy built assets
+COPY --from=builder /app/dist /usr/share/nginx/html
+
+# Copy Nginx template (envsubst replaces ${PORT} on startup automatically)
+COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+
+# Copy runtime environment variable generator script into nginx entrypoint hooks
+COPY 40-generate-env.sh /docker-entrypoint.d/40-generate-env.sh
+RUN chmod +x /docker-entrypoint.d/40-generate-env.sh
+
+# Expose port
+EXPOSE 8080
+
+# Start Nginx
+CMD ["nginx", "-g", "daemon off;"]
