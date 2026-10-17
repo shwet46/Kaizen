@@ -1,9 +1,9 @@
-import { getEnv } from './config';
-
-// API endpoints with environment variable configuration & fallbacks
-const BACKEND_API = getEnv('VITE_API_URL', 'https://kaizen-backend-8x01.onrender.com/api').replace(/\/$/, '');
-const BOT_API = (getEnv('VITE_BOT_API_URL') || getEnv('VITE_VOICE_CHATBOT_API') || 'https://kaizen-bot-awcf.onrender.com/api').replace(/\/$/, '');
-// Primary API base used by the frontend
+// Hardcoded API endpoints using logical OR for fallback
+// Backend API
+const BACKEND_API = 'https://kaizen-backend-8x01.onrender.com/api';
+// Bot API
+const BOT_API = 'https://kaizen-bot-awcf.onrender.com/api';
+// Primary API base used by the frontend (fallback to bot API if backend API is unavailable)
 const API_BASE = BACKEND_API || BOT_API;
 
 

@@ -22,11 +22,9 @@ import {
   LiaChartLineSolid as Activity,
   LiaCheckCircleSolid as CheckCircle
 } from "react-icons/lia"
-import { getEnv } from "@/lib/config"
 
 const getApiUrl = () => {
-  const envUrl = getEnv('VITE_API_URL');
-  if (envUrl) return envUrl.replace(/\/$/, '')
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL.replace(/\/$/, '')
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
     return 'http://localhost:8000/api'
   }
