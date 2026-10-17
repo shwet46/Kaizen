@@ -10,6 +10,8 @@ export function LenisProvider({ children }: { children: React.ReactNode }) {
     const lenis = new Lenis({
       duration: 1.2,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      anchors: true,
+      smoothWheel: true,
       touchMultiplier: 2,
       infinite: false,
     });
@@ -20,16 +22,20 @@ export function LenisProvider({ children }: { children: React.ReactNode }) {
     };
     lenis.on("scroll", updateScrollProgress);
 
+    let animationFrameId = 0;
+
     function raf(time: number) {
       lenis.raf(time);
-      requestAnimationFrame(raf);
+      animationFrameId = requestAnimationFrame(raf);
     }
 
-    requestAnimationFrame(raf);
+    animationFrameId = requestAnimationFrame(raf);
 
     return () => {
+      cancelAnimationFrame(animationFrameId);
       lenis.off("scroll", updateScrollProgress);
       lenis.destroy();
+      lenisRef.current = null;
     };
   }, []);
 
