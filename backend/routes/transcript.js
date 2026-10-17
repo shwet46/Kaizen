@@ -23,6 +23,26 @@ function findTeamMember(assigneeName) {
     return member || TEAM[Math.floor(Math.random() * TEAM.length)];
 }
 
+async function resolveJiraAssignee(member, baseURL, auth) {
+  if (!member) return null;
+
+  try {
+    const response = await axios.get(`${baseURL}/user/search`, {
+      auth,
+      params: { query: member.name, maxResults: 10 },
+    });
+    const normalizedName = member.name.toLowerCase();
+    const user = response.data.find((candidate) =>
+      candidate.active && candidate.displayName?.toLowerCase().startsWith(normalizedName)
+    );
+
+    return user ? { ...member, accountId: user.accountId } : null;
+  } catch (error) {
+    console.warn(`Unable to resolve Jira user ${member.name}:`, error.message);
+    return null;
+  }
+}
+
 // Map role to team member
 function mapRoleToTeamMember(roleRequired) {
     const roleMap = {
@@ -393,7 +413,7 @@ router.post('/create-jira-tasks', async (req, res) => {
     const JIRA_DOMAIN = process.env.JIRA_BASE_URL?.replace('https://', '').replace(/\/$/, '');
     const JIRA_EMAIL = process.env.JIRA_EMAIL;
     const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN;
-    const PROJECT_KEY = 'SCRUM';
+    const PROJECT_KEY = process.env.JIRA_PROJECT_KEY || 'KAN';
 
     if (!JIRA_EMAIL || !JIRA_API_TOKEN || !JIRA_DOMAIN) {
       return res.status(400).json({
@@ -430,6 +450,7 @@ router.post('/create-jira-tasks', async (req, res) => {
         if (!assignee) assignee = TEAM[0];
 
         // Create Jira issue
+        const resolvedAssignee = await resolveJiraAssignee(assignee, baseURL, auth);
         const body = {
           fields: {
             project: { key: PROJECT_KEY },
@@ -448,9 +469,12 @@ router.post('/create-jira-tasks', async (req, res) => {
               ]
             },
             issuetype: { name: 'Task' },
-            assignee: { accountId: assignee.accountId }
           }
         };
+
+        if (resolvedAssignee?.accountId) {
+          body.fields.assignee = { accountId: resolvedAssignee.accountId };
+        }
 
         const jiraRes = await axios.post(`${baseURL}/issue`, body, { auth });
 
@@ -489,7 +513,14 @@ router.post('/create-jira-tasks', async (req, res) => {
 
         console.log(`✅ Created Jira ticket: ${jiraRes.data.key} → ${assignee.name}`);
       } catch (error) {
-        console.error(`❌ Failed to create ticket for: ${task.title}`, error.message);
+        const jiraMessages = [
+          ...(error.response?.data?.errorMessages || []),
+          ...Object.values(error.response?.data?.errors || {}),
+        ].filter(Boolean);
+        const errorMessage = jiraMessages.length > 0
+          ? jiraMessages.join('; ')
+          : error.message;
+        console.error(`❌ Failed to create ticket for: ${task.title}`, errorMessage);
         results.push({
           task_id: task.id,
           title: task.title,
@@ -499,7 +530,7 @@ router.post('/create-jira-tasks', async (req, res) => {
           requiredSkills: task.requiredSkills || [],
           assignee: 'Unknown',
           assigneeRole: 'Unknown',
-          error: error.message
+          error: errorMessage
         });
       }
     }
