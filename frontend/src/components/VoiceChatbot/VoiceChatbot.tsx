@@ -164,14 +164,15 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
         setSttNotice(null);
 
         try {
-            const response = await axios.post(`${API_URL}/api/text/chat`, {
+            const response = await axios.post(`${API_URL}/api/insights/query`, {
                 query: trimmed,
                 language: 'en-IN',
-                with_audio: true
+                return_audio: true
             }, { timeout: CHAT_TIMEOUT_MS });
 
-            const { response_text, response_audio } = response.data;
-            if (!response_text || typeof response_text !== 'string') {
+            const responseText = response.data?.response;
+            const responseAudio = response.data?.audio;
+            if (!responseText || typeof responseText !== 'string') {
                 throw new Error('The chatbot returned an empty response');
             }
             const assistantId = Date.now().toString() + Math.random().toString(36).slice(2);
@@ -179,14 +180,14 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
             const newAssistantMsg: Message = {
                 id: assistantId,
                 type: 'assistant',
-                text: response_text,
-                audio: response_audio,
+                text: responseText,
+                audio: responseAudio,
                 timestamp: new Date()
             };
             setMessages(prev => [...prev, newAssistantMsg]);
 
-            if (response_audio) {
-                playResponseAudio(assistantId, response_audio);
+            if (responseAudio) {
+                playResponseAudio(assistantId, responseAudio);
             }
         } catch (error) {
             console.error('Text chat failed:', error);
