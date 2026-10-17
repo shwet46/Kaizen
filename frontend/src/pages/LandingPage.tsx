@@ -57,8 +57,13 @@ import {
   LiaBoltSolid as FaBolt,
   LiaDatabaseSolid as FaDatabase,
 } from "react-icons/lia";
-
-
+import {
+  SiFirebase,
+  SiGooglecloud,
+  SiGooglegemini,
+  SiNeo4J,
+  SiMongodb,
+} from "react-icons/si";
 
 /* ================================================================
    KAIZEN LANDING PAGE
@@ -86,59 +91,105 @@ const DashboardLink = ({
   </Link>
 );
 
-interface SystemArchNodeData {
+export interface SystemArchNodeData {
   step: string;
   title: string;
   subtitle: string;
+  roleBadge: string;
   tags: string[];
   icon: ReactNode;
   color: string;
   isInput?: boolean;
   isOutput?: boolean;
+  isGoogle?: boolean;
 }
 
 const ArchitectureNode = ({ data }: { data: SystemArchNodeData }) => {
   return (
     <div
-      className="sys-arch-node"
+      className={`sys-arch-node ${data.isGoogle ? "is-google" : ""}`}
       style={{
         ["--node-accent" as any]: data.color,
+        border: data.isGoogle ? "2px solid #1A73E8" : `1.5px solid ${data.color}45`,
+        boxShadow: data.isGoogle ? "0 8px 24px -4px rgba(26, 115, 232, 0.2)" : "0 4px 14px rgba(15, 23, 42, 0.05)",
       }}
     >
-      {!data.isInput && (
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="sys-arch-handle"
-          style={{ background: data.color }}
-        />
-      )}
+      {/* 4 Handles for clean, uncrossed routing */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left"
+        className="sys-arch-handle"
+        style={{ background: data.color }}
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right"
+        className="sys-arch-handle"
+        style={{ background: data.color }}
+      />
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="top"
+        className="sys-arch-handle"
+        style={{ background: data.color }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="bottom"
+        className="sys-arch-handle"
+        style={{ background: data.color }}
+      />
+
       <div className="sys-arch-node-top">
-        <div className="sys-arch-icon" style={{ color: data.color, background: `${data.color}18` }}>
+        <div className="sys-arch-icon" style={{ color: data.color, background: `${data.color}15` }}>
           {data.icon}
         </div>
         <div className="sys-arch-meta">
-          <span className="sys-arch-step" style={{ color: data.color }}>{data.step}</span>
+          {data.isGoogle ? (
+            <span className="sys-arch-google-badge">
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#1A73E8", display: "inline-block" }} />
+              Google Cloud
+            </span>
+          ) : (
+            <span className="sys-arch-step" style={{ color: data.color }}>{data.step}</span>
+          )}
           <span className="sys-arch-dot" style={{ background: data.color }} />
         </div>
       </div>
       <div className="sys-arch-node-body">
         <div className="sys-arch-title">{data.title}</div>
         <div className="sys-arch-subtitle">{data.subtitle}</div>
+        {data.roleBadge && (
+          <div style={{ marginBottom: 6 }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "2px 7px",
+                borderRadius: 4,
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: "0.62rem",
+                fontWeight: 700,
+                color: data.color,
+                background: `${data.color}12`,
+                border: `1px solid ${data.color}30`,
+              }}
+            >
+              {data.roleBadge}
+            </span>
+          </div>
+        )}
         <div className="sys-arch-pills">
           {data.tags.map((t: string, i: number) => (
             <span key={i} className="sys-arch-pill">{t}</span>
           ))}
         </div>
       </div>
-      {!data.isOutput && (
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="sys-arch-handle"
-          style={{ background: data.color }}
-        />
-      )}
     </div>
   );
 };
@@ -151,12 +202,13 @@ const systemDesignNodes: Node[] = [
   {
     id: "sources",
     type: "archNode",
-    position: { x: 30, y: 160 },
+    position: { x: 50, y: 190 },
     data: {
       step: "01 · SOURCES",
       title: "Ecosystem Sources",
-      subtitle: "GitHub · Jira · Slack",
-      tags: ["Webhooks", "APIs"],
+      subtitle: "GitHub · Jira · Slack · Standup Audio",
+      roleBadge: "Webhooks & Standups",
+      tags: ["Git Commits", "PR Reviews", "Audio Stream"],
       icon: <FaGithub />,
       color: "#4285F4",
       isInput: true,
@@ -165,12 +217,13 @@ const systemDesignNodes: Node[] = [
   {
     id: "ingestion",
     type: "archNode",
-    position: { x: 350, y: 160 },
+    position: { x: 410, y: 190 },
     data: {
-      step: "02 · INGEST",
+      step: "02 · INGESTION",
       title: "Signal Ingestion",
-      subtitle: "Event Stream Broker",
-      tags: ["Kafka", "Webhooks"],
+      subtitle: "Event Stream & GCP Speech STT",
+      roleBadge: "Event Stream & Neural STT",
+      tags: ["Event Stream", "GCP Speech APIs"],
       icon: <FaBolt />,
       color: "#EA4335",
     },
@@ -178,38 +231,43 @@ const systemDesignNodes: Node[] = [
   {
     id: "backend",
     type: "archNode",
-    position: { x: 675, y: 45 },
+    position: { x: 770, y: 60 },
     data: {
-      step: "03A · API",
-      title: "FastAPI Core",
-      subtitle: "Metrics & Telemetry API",
-      tags: ["FastAPI", "Python"],
-      icon: <FaServer />,
+      step: "03A · BACKEND",
+      title: "Google Cloud Run",
+      subtitle: "Node.js Express & Python Bot",
+      roleBadge: "⚡ Autoscaling Microservices",
+      tags: ["Google Cloud Run", "Docker", "WebSockets"],
+      icon: <SiGooglecloud />,
       color: "#34A853",
+      isGoogle: true,
     },
   },
   {
     id: "ai",
     type: "archNode",
-    position: { x: 675, y: 275 },
+    position: { x: 770, y: 320 },
     data: {
-      step: "03B · AI",
-      title: "Gemini",
-      subtitle: "Vertex AI reasoning",
-      tags: ["Gemini", "Vertex AI"],
-      icon: <FaBolt />,
+      step: "03B · AI REASONING",
+      title: "Gemini on Vertex AI",
+      subtitle: "Multimodal Task & Risk Engine",
+      roleBadge: "⚡ Vertex AI Gemini 1.5",
+      tags: ["Chain-of-Thought", "Task Allocator", "Risk Models"],
+      icon: <SiGooglegemini />,
       color: "#7E57C2",
+      isGoogle: true,
     },
   },
   {
     id: "data",
     type: "archNode",
-    position: { x: 1000, y: 160 },
+    position: { x: 1130, y: 190 },
     data: {
-      step: "04 · STORE",
+      step: "04 · DATA TIER",
       title: "Knowledge Store",
-      subtitle: "MongoDB & Neo4j",
-      tags: ["Graph", "Document"],
+      subtitle: "Neo4j Graph & MongoDB Atlas",
+      roleBadge: "Bi-Temporal & Time-Series",
+      tags: ["Neo4j Graph", "MongoDB Atlas", "Cypher"],
       icon: <FaDatabase />,
       color: "#FBBC05",
     },
@@ -217,14 +275,16 @@ const systemDesignNodes: Node[] = [
   {
     id: "workspace",
     type: "archNode",
-    position: { x: 1320, y: 160 },
+    position: { x: 1490, y: 190 },
     data: {
-      step: "05 · UI",
-      title: "Executive Workspace",
-      subtitle: "React Dashboard",
-      tags: ["React", "Live View"],
-      icon: <FaRocket />,
-      color: "#4285F4",
+      step: "05 · FRONTEND",
+      title: "Firebase App Hosting",
+      subtitle: "Executive Command Center UI",
+      roleBadge: "⚡ Firebase Hosting Edge",
+      tags: ["React 18", "Edge CDN", "Interactive View"],
+      icon: <SiFirebase />,
+      color: "#1A73E8",
+      isGoogle: true,
       isOutput: true,
     },
   },
@@ -232,82 +292,109 @@ const systemDesignNodes: Node[] = [
 
 const systemDesignEdges: Edge[] = [
   {
-    id: "sources-ingestion",
+    id: "sources-ingest",
     source: "sources",
+    sourceHandle: "right",
     target: "ingestion",
+    targetHandle: "left",
     animated: true,
     type: "smoothstep",
-    label: "Webhooks & APIs",
+    label: "Webhooks & Standups",
     style: { stroke: "#4285F4", strokeWidth: 2.5 },
-    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" },
-    labelBgStyle: { fill: "#ffffff", fillOpacity: 1, rx: 6, ry: 6, stroke: "#64748b", strokeWidth: 1.5 },
-    labelBgPadding: [10, 6],
+    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 0.98, rx: 6, ry: 6, stroke: "#cbd5e1", strokeWidth: 1.5 },
+    labelBgPadding: [6, 3],
     markerEnd: { type: MarkerType.ArrowClosed, color: "#4285F4", width: 16, height: 16 },
   },
   {
-    id: "ingestion-backend",
+    id: "ingest-backend",
     source: "ingestion",
+    sourceHandle: "right",
     target: "backend",
+    targetHandle: "left",
     animated: true,
     type: "smoothstep",
-    label: "Event Stream",
+    label: "Event Stream & Audio",
     style: { stroke: "#34A853", strokeWidth: 2.5 },
-    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" },
-    labelBgStyle: { fill: "#ffffff", fillOpacity: 1, rx: 6, ry: 6, stroke: "#64748b", strokeWidth: 1.5 },
-    labelBgPadding: [10, 6],
+    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 0.98, rx: 6, ry: 6, stroke: "#cbd5e1", strokeWidth: 1.5 },
+    labelBgPadding: [6, 3],
     markerEnd: { type: MarkerType.ArrowClosed, color: "#34A853", width: 16, height: 16 },
   },
   {
-    id: "ingestion-ai",
+    id: "ingest-ai",
     source: "ingestion",
+    sourceHandle: "right",
     target: "ai",
+    targetHandle: "left",
     animated: true,
     type: "smoothstep",
-    label: "Context Prompts",
+    label: "Speech Audio Stream",
+    style: { stroke: "#EA4335", strokeWidth: 2.5 },
+    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 0.98, rx: 6, ry: 6, stroke: "#cbd5e1", strokeWidth: 1.5 },
+    labelBgPadding: [6, 3],
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#EA4335", width: 16, height: 16 },
+  },
+  {
+    id: "backend-ai",
+    source: "backend",
+    sourceHandle: "bottom",
+    target: "ai",
+    targetHandle: "top",
+    animated: true,
+    type: "smoothstep",
+    label: "CoT Task Allocation",
     style: { stroke: "#7E57C2", strokeWidth: 2.5 },
-    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" },
-    labelBgStyle: { fill: "#ffffff", fillOpacity: 1, rx: 6, ry: 6, stroke: "#64748b", strokeWidth: 1.5 },
-    labelBgPadding: [10, 6],
+    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 0.98, rx: 6, ry: 6, stroke: "#cbd5e1", strokeWidth: 1.5 },
+    labelBgPadding: [6, 3],
     markerEnd: { type: MarkerType.ArrowClosed, color: "#7E57C2", width: 16, height: 16 },
   },
   {
     id: "backend-data",
     source: "backend",
+    sourceHandle: "right",
     target: "data",
+    targetHandle: "left",
     animated: true,
     type: "smoothstep",
-    label: "Calculated Metrics",
+    label: "Commits & CapEx Logs",
     style: { stroke: "#34A853", strokeWidth: 2.5 },
-    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" },
-    labelBgStyle: { fill: "#ffffff", fillOpacity: 1, rx: 6, ry: 6, stroke: "#64748b", strokeWidth: 1.5 },
-    labelBgPadding: [10, 6],
+    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 0.98, rx: 6, ry: 6, stroke: "#cbd5e1", strokeWidth: 1.5 },
+    labelBgPadding: [6, 3],
     markerEnd: { type: MarkerType.ArrowClosed, color: "#34A853", width: 16, height: 16 },
   },
   {
     id: "ai-data",
     source: "ai",
+    sourceHandle: "right",
     target: "data",
+    targetHandle: "left",
     animated: true,
     type: "smoothstep",
-    label: "Graph & Vectors",
+    label: "Graph & Skill Ontologies",
     style: { stroke: "#7E57C2", strokeWidth: 2.5 },
-    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" },
-    labelBgStyle: { fill: "#ffffff", fillOpacity: 1, rx: 6, ry: 6, stroke: "#64748b", strokeWidth: 1.5 },
-    labelBgPadding: [10, 6],
+    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 0.98, rx: 6, ry: 6, stroke: "#cbd5e1", strokeWidth: 1.5 },
+    labelBgPadding: [6, 3],
     markerEnd: { type: MarkerType.ArrowClosed, color: "#7E57C2", width: 16, height: 16 },
   },
   {
     id: "data-workspace",
     source: "data",
+    sourceHandle: "right",
     target: "workspace",
+    targetHandle: "left",
     animated: true,
     type: "smoothstep",
-    label: "Live WebSockets",
-    style: { stroke: "#FBBC05", strokeWidth: 2.5 },
-    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 12, fontFamily: "'JetBrains Mono', monospace" },
-    labelBgStyle: { fill: "#ffffff", fillOpacity: 1, rx: 6, ry: 6, stroke: "#64748b", strokeWidth: 1.5 },
-    labelBgPadding: [10, 6],
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#FBBC05", width: 16, height: 16 },
+    label: "Live Telemetry WebSockets",
+    style: { stroke: "#1A73E8", strokeWidth: 2.5 },
+    labelStyle: { fill: "#0f172a", fontWeight: 700, fontSize: 11, fontFamily: "'JetBrains Mono', monospace" },
+    labelBgStyle: { fill: "#ffffff", fillOpacity: 0.98, rx: 6, ry: 6, stroke: "#cbd5e1", strokeWidth: 1.5 },
+    labelBgPadding: [6, 3],
+    markerEnd: { type: MarkerType.ArrowClosed, color: "#1A73E8", width: 16, height: 16 },
   },
 ];
 
@@ -405,44 +492,45 @@ export default function LandingPage() {
     {
       category: "UI",
       title: "React",
-      tags: ["React", "TypeScript", "Tailwind CSS"],
+      tags: ["React 18", "TypeScript", "Tailwind CSS"],
       icon: <FaCodeBranch />,
       color: "#4285F4",
     },
     {
       category: "API",
-      title: "FastAPI",
-      tags: ["FastAPI", "Python", "Redis Queue"],
+      title: "Express & Node.js",
+      tags: ["Node.js Express", "Python Bot", "WebSockets"],
       icon: <FaServer />,
       color: "#34A853",
     },
     {
       category: "Data Layer",
       title: "MongoDB · Neo4j",
-      tags: ["MongoDB Atlas", "Neo4j Graph"],
+      tags: ["MongoDB Atlas", "Neo4j Graph", "Cypher"],
       icon: <FaDatabase />,
       color: "#FBBC05",
     },
     {
       category: "AI Intelligence",
-      title: "Gemini LLM intelligence via Vertex AI",
-      tags: ["Gemini LLM", "Vertex AI", "Reasoning"],
-      icon: <FaBolt />,
+      title: "Gemini via Vertex AI",
+      tags: ["Gemini 1.5", "Vertex AI", "CoT Planner"],
+      icon: <SiGooglegemini />,
       color: "#7E57C2",
     },
     {
       category: "Ecosystem",
       title: "GitHub · Jira · Slack",
-      tags: ["GitHub", "Jira", "Slack"],
+      tags: ["GitHub", "Jira", "Slack", "Webhooks"],
       icon: <FaGithub />,
       color: "#EA4335",
     },
     {
-      category: "Infrastructure",
-      title: "Google Cloud & Kubernetes",
-      tags: ["GCP", "Kubernetes (GKE)", "Docker"],
-      icon: <FaShieldHalved />,
+      category: "Google Cloud Stack",
+      title: "Cloud Run & Firebase",
+      tags: ["Google Cloud Run (Backend)", "Firebase App Hosting (Frontend)", "Vertex AI", "GCP Speech"],
+      icon: <SiGooglecloud />,
       color: "#1A73E8",
+      highlight: true,
     },
   ];
 
@@ -576,8 +664,7 @@ export default function LandingPage() {
         </section>
 
         {/* ================================================================
-          3. INTERACTIVE DASHBOARD PREVIEW
-          (Significantly improved live dashboard experience on landing page)
+          3. INTERACTIVE DASHBOARD PREVIEW (Executive Command Center)
           ================================================================ */}
         <section className="section" id="interactive-preview">
           <div className="container">
@@ -608,6 +695,153 @@ export default function LandingPage() {
                   <span>Open Full Interactive Workspace</span>
                   <FaArrowRight />
                 </DashboardLink>
+              </div>
+            </AnimateOnScroll>
+          </div>
+        </section>
+
+        {/* ================================================================
+          4. TECHNOLOGY STACK & SYSTEM ARCHITECTURE
+          Moved directly after Executive Command Center
+          Highlighting Google Cloud technologies, Cloud Run backend & Firebase App Hosting frontend
+          ================================================================ */}
+        <section className="section tech-stack-section" id="tech-stack">
+          <div className="container container-lg">
+            <div className="tech-stack-heading">
+              <AnimateOnScroll>
+                <span className="section-label">Built for the real world</span>
+                <h2 className="section-title">
+                  A modern stack for{" "}
+                  <TextHighlighter color="var(--accent-blue-light)" strokeColor="var(--accent-blue)">
+                    dependable intelligence
+                  </TextHighlighter>
+                </h2>
+                <p className="section-subtitle">
+                  Frontend is deployed using <strong>Firebase App Hosting</strong>, backend containerized microservices run on <strong>Google Cloud Run</strong>, with multimodal AI reasoning powered by <strong>Google Gemini on Vertex AI</strong>.
+                </p>
+              </AnimateOnScroll>
+            </div>
+
+            {/* Reverted Tech Stack Boxes with Google Stack Highlighted via clean colored borders */}
+            <div className="tech-stack-grid">
+              {techStack.map((item) => (
+                <div key={item.category} className="tech-stack-col">
+                  <div
+                    className={`tech-stack-card-small ${item.highlight ? "google-highlight" : ""}`}
+                    style={{
+                      ["--card-accent" as any]: item.color,
+                      border: item.highlight ? "2px solid #1A73E8" : `1.5px solid ${item.color}45`,
+                      boxShadow: item.highlight ? "0 6px 20px -4px rgba(26, 115, 232, 0.16)" : "0 2px 10px -2px rgba(15, 23, 42, 0.04)",
+                    }}
+                  >
+                    <div className="tech-small-header">
+                      <div className="tech-small-icon" style={{ color: item.color, background: `${item.color}15` }}>
+                        {item.icon}
+                      </div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        {item.highlight && (
+                          <span className="tech-small-google-badge">
+                            Google Cloud
+                          </span>
+                        )}
+                        <span className="tech-small-category">{item.category}</span>
+                      </div>
+                    </div>
+
+                    <h3 className="tech-small-title">{item.title}</h3>
+
+                    <div className="tech-small-tags">
+                      {item.tags.map((tag) => (
+                        <span key={tag} className="tech-small-tag">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Unboxed, Open System Design Canvas */}
+            <AnimateOnScroll delay={0.15}>
+              <div className="system-design-section-wrapper">
+                <div className="system-design-header">
+                  <div className="system-design-header-left">
+                    <span className="section-label">Architecture Pipeline</span>
+                    <h3 className="system-design-title">
+                      System Topology & Google Cloud Flow
+                    </h3>
+                    <p className="system-design-desc">
+                      Trace how developer events and standup audio flow through Google Cloud Run microservices and Gemini on Vertex AI, persisted in Neo4j and MongoDB, and rendered via Firebase App Hosting.
+                    </p>
+                  </div>
+                  <div className="system-design-header-right">
+                    <div className="system-design-meta-pills">
+                      <span className="meta-pill">
+                        <span className="meta-dot live" />
+                        Firebase App Hosting
+                      </span>
+                      <span className="meta-pill">
+                        <SiGooglecloud style={{ fontSize: "0.85rem", color: "#34A853" }} />
+                        Google Cloud Run
+                      </span>
+                      <span className="meta-pill">
+                        <SiGooglegemini style={{ fontSize: "0.85rem", color: "#7E57C2" }} />
+                        Vertex AI Gemini
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="system-design-canvas-wrapper">
+                  <div className="system-design-flow-canvas" style={{ height: 500 }}>
+                    <ReactFlow
+                      nodes={systemDesignNodes}
+                      edges={systemDesignEdges}
+                      nodeTypes={nodeTypes}
+                      fitView
+                      fitViewOptions={{ padding: 0.15 }}
+                      minZoom={0.2}
+                      maxZoom={1.5}
+                      nodesDraggable={true}
+                      nodesConnectable={false}
+                      zoomOnScroll={false}
+                      panOnScroll={false}
+                      preventScrolling={false}
+                      proOptions={{ hideAttribution: true }}
+                    >
+                      <FlowBackground variant={BackgroundVariant.Dots} gap={24} size={1.2} color="#cbd5e1" />
+                      <FlowControls showInteractive={false} className="system-design-controls" />
+                    </ReactFlow>
+                  </div>
+
+                  <div className="system-design-legend">
+                    <div className="legend-item">
+                      <span className="legend-step">01</span>
+                      <span className="legend-label">Ecosystem & Audio</span>
+                    </div>
+                    <span className="legend-arrow">→</span>
+                    <div className="legend-item">
+                      <span className="legend-step">02</span>
+                      <span className="legend-label">Signal Ingestion</span>
+                    </div>
+                    <span className="legend-arrow">→</span>
+                    <div className="legend-item">
+                      <span className="legend-step">03</span>
+                      <span className="legend-label">Cloud Run & Gemini</span>
+                    </div>
+                    <span className="legend-arrow">→</span>
+                    <div className="legend-item">
+                      <span className="legend-step">04</span>
+                      <span className="legend-label">Neo4j & MongoDB</span>
+                    </div>
+                    <span className="legend-arrow">→</span>
+                    <div className="legend-item">
+                      <span className="legend-step">05</span>
+                      <span className="legend-label">Firebase Workspace</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </AnimateOnScroll>
           </div>
@@ -845,134 +1079,6 @@ export default function LandingPage() {
         </section>
 
         {/* ================================================================
-          7. TECHNOLOGY STACK
-          The foundation behind the intelligence layer.
-          ================================================================ */}
-        <section className="section tech-stack-section" id="tech-stack">
-          <div className="container container-lg">
-            <div className="tech-stack-heading">
-              <AnimateOnScroll>
-                <span className="section-label">Built for the real world</span>
-                <h2 className="section-title">
-                  A modern stack for{" "}
-                  <TextHighlighter color="var(--accent-blue-light)" strokeColor="var(--accent-blue)">
-                    dependable intelligence
-                  </TextHighlighter>
-                </h2>
-              </AnimateOnScroll>
-            </div>
-
-            <div className="tech-stack-grid">
-              {techStack.map((item) => (
-                <div key={item.category} className="tech-stack-col">
-                  <div className="tech-stack-card-small" style={{ ["--card-accent" as any]: item.color }}>
-                    <div className="tech-small-header">
-                      <div className="tech-small-icon" style={{ color: item.color, background: `${item.color}15` }}>
-                        {item.icon}
-                      </div>
-                      <span className="tech-small-category">{item.category}</span>
-                    </div>
-
-                    <h3 className="tech-small-title">{item.title}</h3>
-
-                    <div className="tech-small-tags">
-                      {item.tags.map((tag) => (
-                        <span key={tag} className="tech-small-tag">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Unboxed, Open System Design Canvas */}
-            <AnimateOnScroll delay={0.15}>
-              <div className="system-design-section-wrapper">
-                <div className="system-design-header">
-                  <div className="system-design-header-left">
-                    <span className="section-label">Architecture Pipeline</span>
-                    <h3 className="system-design-title">
-                      Live Signal Ingestion & Intelligence Flow
-                    </h3>
-                    <p className="system-design-desc">
-                      Trace how events travel from raw developer touchpoints through real-time streaming, parallel AI reasoning, and bi-temporal graph storage into boardroom dashboards.
-                    </p>
-                  </div>
-                  <div className="system-design-header-right">
-                    <div className="system-design-meta-pills">
-                      <span className="meta-pill">
-                        <span className="meta-dot live" />
-                        Live Event Streaming
-                      </span>
-                      <span className="meta-pill">
-                        <FaServer style={{ fontSize: "0.85rem", color: "var(--accent-mint)" }} />
-                        Deployed on GCP
-                      </span>
-                      <span className="meta-pill">
-                        <FaLock style={{ fontSize: "0.85rem", color: "var(--accent-lavender)" }} />
-                        SOC2 Type II Ready
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="system-design-canvas-wrapper">
-                  <div className="system-design-flow-canvas">
-                    <ReactFlow
-                      nodes={systemDesignNodes}
-                      edges={systemDesignEdges}
-                      nodeTypes={nodeTypes}
-                      fitView
-                      fitViewOptions={{ padding: 0.08 }}
-                      minZoom={0.2}
-                      maxZoom={1.5}
-                      nodesDraggable={true}
-                      nodesConnectable={false}
-                      zoomOnScroll={false}
-                      panOnScroll={false}
-                      preventScrolling={false}
-                      proOptions={{ hideAttribution: true }}
-                    >
-                      <FlowBackground variant={BackgroundVariant.Dots} gap={24} size={1.2} color="#cbd5e1" />
-                      <FlowControls showInteractive={false} className="system-design-controls" />
-                    </ReactFlow>
-                  </div>
-
-                  <div className="system-design-legend">
-                    <div className="legend-item">
-                      <span className="legend-step">01</span>
-                      <span className="legend-label">Ecosystem Sources</span>
-                    </div>
-                    <span className="legend-arrow">→</span>
-                    <div className="legend-item">
-                      <span className="legend-step">02</span>
-                      <span className="legend-label">Stream Broker</span>
-                    </div>
-                    <span className="legend-arrow">→</span>
-                    <div className="legend-item">
-                      <span className="legend-step">03</span>
-                      <span className="legend-label">FastAPI & Gemini</span>
-                    </div>
-                    <span className="legend-arrow">→</span>
-                    <div className="legend-item">
-                      <span className="legend-step">04</span>
-                      <span className="legend-label">Knowledge Store</span>
-                    </div>
-                    <span className="legend-arrow">→</span>
-                    <div className="legend-item">
-                      <span className="legend-step">05</span>
-                      <span className="legend-label">React Workspace</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </AnimateOnScroll>
-          </div>
-        </section>
-
-        {/* ================================================================
           8. PRICING
           Transparent entry points for teams at different stages.
           ================================================================ */}
@@ -1108,7 +1214,7 @@ export default function LandingPage() {
             <div>© {new Date().getFullYear()} Kaizen Intelligence Inc. All rights reserved.</div>
             <div style={{ display: "flex", gap: 20 }}>
               <DashboardLink>Launch Dashboard</DashboardLink>
-              <a href="#">Documentation</a>
+              <a href="#tech-stack">System Architecture</a>
               <a href="#">Privacy Policy</a>
               <a href="#">Terms of Service</a>
             </div>

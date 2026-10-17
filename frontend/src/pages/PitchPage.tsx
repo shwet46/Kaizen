@@ -39,6 +39,7 @@ import {
   LiaRobotSolid as FaRobot,
   LiaSyncSolid as FaSync,
   LiaFileInvoiceDollarSolid as FaInvoice,
+  LiaLinkedin as FaLinkedin,
 } from "react-icons/lia";
 
 // Reusable viewport reveal animation matching transition physics
@@ -132,6 +133,64 @@ export default function PitchPage() {
   return (
     <LenisProvider>
       <div className="pitch-root">
+        {/* Floating Top Navigation Header */}
+        <header
+          style={{
+            position: "fixed",
+            top: "16px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            zIndex: 1000,
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            padding: "8px 18px",
+            background: "rgba(255, 255, 255, 0.92)",
+            backdropFilter: "blur(16px)",
+            borderRadius: "999px",
+            border: "1px solid rgba(226, 232, 240, 0.9)",
+            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
+          }}
+        >
+          <Link
+            to="/"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              fontSize: "0.82rem",
+              fontWeight: 700,
+              color: "#1e293b",
+              textDecoration: "none",
+            }}
+          >
+            <FaArrowRight style={{ transform: "rotate(180deg)", fontSize: "0.75rem" }} />
+            <span>Kaizen Home</span>
+          </Link>
+          <span style={{ color: "#cbd5e1" }}>|</span>
+          <span style={{ fontSize: "0.75rem", fontFamily: "var(--font-mono)", fontWeight: 700, color: "#64748b" }}>
+            EXECUTIVE PITCH DECK
+          </span>
+          <span style={{ color: "#cbd5e1" }}>|</span>
+          <Link
+            to="/dashboard"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "4px 14px",
+              background: "var(--accent-blue, #4285F4)",
+              color: "#ffffff",
+              borderRadius: "999px",
+              fontSize: "0.78rem",
+              fontWeight: 700,
+              textDecoration: "none",
+            }}
+          >
+            Launch Dashboard
+          </Link>
+        </header>
+
         {/* ================================================================
             SECTION 0: COVER SPLASH HERO (COLORFUL PASTEL MESH BG)
             ================================================================ */}
@@ -2560,17 +2619,17 @@ export default function PitchPage() {
                   lineHeight: 1.6,
                 }}
               >
-                Seeking <strong>$4.2M Seed</strong> to become the de-facto Engineering Capital Layer. Live MVP connected to enterprise Git & Jira.
+                The autonomous engineering capital layer for modern enterprise organizations. Connected to enterprise Git & Jira.
               </p>
             </MotionReveal>
 
             <MotionReveal delay={0.35}>
-              <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "3.5rem" }}>
+              <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap", marginBottom: "3rem" }}>
                 <Link to="/" className="pitch-btn pitch-btn-primary pitch-btn-lg">
                   Launch Live Workspace <FaArrowRight />
                 </Link>
                 <a
-                  href="https://github.com"
+                  href="https://github.com/shwet46/Kaizen"
                   target="_blank"
                   rel="noreferrer"
                   className="pitch-btn pitch-btn-outline pitch-btn-lg"
@@ -2580,72 +2639,73 @@ export default function PitchPage() {
               </div>
             </MotionReveal>
 
-            {/* 3 Investment Ask Cards (Squared) */}
+            {/* Contact Details Card (Centered) */}
             <MotionReveal delay={0.45}>
-              <div className="pitch-grid-3" style={{ textAlign: "left" }}>
-                <div
-                  style={{
-                    backgroundColor: "rgba(255, 255, 255, 0.06)",
-                    border: "1.5px solid rgba(255, 255, 255, 0.16)",
-                    boxShadow: "3px 3px 0px rgba(0, 0, 0, 0.3)",
-                    padding: "1.5rem",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <span className="pitch-card-metric-label" style={{ color: "#93c5fd" }}>Use of Funds</span>
-                  <div style={{ fontFamily: "var(--font-sans)", fontSize: "1.5rem", fontWeight: 700, color: "white", marginBottom: "0.6rem" }}>
-                    $4.2M Seed
-                  </div>
-                  <ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: "0.78rem", color: "rgba(255, 255, 255, 0.7)", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
-                    <li><strong style={{ color: "white" }}>60% R&D:</strong> Scale graph teams & patents</li>
-                    <li><strong style={{ color: "white" }}>25% GTM:</strong> Enterprise account sales funnel</li>
-                    <li><strong style={{ color: "white" }}>15% G&A:</strong> Operational scaling & legal</li>
-                  </ul>
+              <div
+                style={{
+                  maxWidth: "32rem",
+                  margin: "0 auto",
+                  textAlign: "left",
+                  backgroundColor: "rgba(255, 255, 255, 0.06)",
+                  border: "1.5px solid rgba(255, 255, 255, 0.16)",
+                  boxShadow: "3px 3px 0px rgba(0, 0, 0, 0.3)",
+                  padding: "1.75rem 2rem",
+                  boxSizing: "border-box",
+                }}
+              >
+                <span className="pitch-card-metric-label" style={{ color: "var(--pitch-yellow)" }}>Contact & Team</span>
+                <div style={{ fontFamily: "var(--font-sans)", fontSize: "1.45rem", fontWeight: 700, color: "white", marginBottom: "0.85rem" }}>
+                  Let's Connect
                 </div>
-
-                <div
-                  style={{
-                    backgroundColor: "rgba(255, 255, 255, 0.06)",
-                    border: "1.5px solid rgba(255, 255, 255, 0.16)",
-                    boxShadow: "3px 3px 0px rgba(0, 0, 0, 0.3)",
-                    padding: "1.5rem",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <span className="pitch-card-metric-label" style={{ color: "var(--pitch-green)" }}>Founding Team</span>
-                  <div style={{ fontFamily: "var(--font-sans)", fontSize: "1.5rem", fontWeight: 700, color: "white", marginBottom: "0.6rem" }}>
-                    2x Exits
-                  </div>
-                  <p style={{ fontSize: "0.78rem", color: "rgba(255, 255, 255, 0.7)", margin: 0, lineHeight: 1.5 }}>
-                    Serial entrepreneurs with deep domain expertise. Ex-Google (Vertex AI, Ads), ex-Palantir (Foundry), and ex-Microsoft (Azure).
-                  </p>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: "rgba(255, 255, 255, 0.06)",
-                    border: "1.5px solid rgba(255, 255, 255, 0.16)",
-                    boxShadow: "3px 3px 0px rgba(0, 0, 0, 0.3)",
-                    padding: "1.5rem",
-                    boxSizing: "border-box",
-                  }}
-                >
-                  <span className="pitch-card-metric-label" style={{ color: "var(--pitch-yellow)" }}>Contact</span>
-                  <div style={{ fontFamily: "var(--font-sans)", fontSize: "1.5rem", fontWeight: 700, color: "white", marginBottom: "0.6rem" }}>
-                    Let's Build
-                  </div>
-                  <p style={{ fontSize: "0.78rem", color: "rgba(255, 255, 255, 0.7)", margin: 0, lineHeight: 1.5 }}>
-                    [email protected]
-                    <br />
-                    <a
-                      href="https://www.linkedin.com/in/kaizen--/"
-                      target="_blank"
-                      rel="noreferrer"
-                      style={{ color: "#93c5fd", textDecoration: "underline" }}
-                    >
-                      linkedin.com/in/kaizen--/
-                    </a>
-                  </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                  <a
+                    href="https://www.linkedin.com/in/shweta-behera/"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      color: "#93c5fd",
+                      textDecoration: "none",
+                      fontSize: "0.86rem",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <FaLinkedin style={{ color: "#60a5fa", fontSize: "1.1rem", flexShrink: 0 }} />
+                    <span style={{ fontWeight: 600 }}>shweta-behera</span>
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/ojasvidoye/"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      color: "#93c5fd",
+                      textDecoration: "none",
+                      fontSize: "0.86rem",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <FaLinkedin style={{ color: "#60a5fa", fontSize: "1.1rem", flexShrink: 0 }} />
+                    <span style={{ fontWeight: 600 }}>ojasvidoye</span>
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/maitridalvi13/"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      color: "#93c5fd",
+                      textDecoration: "none",
+                      fontSize: "0.86rem",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "8px",
+                    }}
+                  >
+                    <FaLinkedin style={{ color: "#60a5fa", fontSize: "1.1rem", flexShrink: 0 }} />
+                    <span style={{ fontWeight: 600 }}>maitridalvi13</span>
+                  </a>
                 </div>
               </div>
             </MotionReveal>

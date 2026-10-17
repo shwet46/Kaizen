@@ -838,6 +838,33 @@
     border-radius: 5px;
   }
 
+  .tech-stack-card-small.google-highlight {
+    border: 2px solid #1A73E8;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    box-shadow: 0 6px 20px -4px rgba(26, 115, 232, 0.16), 0 2px 6px rgba(26, 115, 232, 0.05);
+  }
+
+  .tech-stack-card-small.google-highlight:hover {
+    border-color: #1557b0;
+    box-shadow: 0 12px 28px -4px rgba(26, 115, 232, 0.24), 0 0 0 1px #1557b0;
+  }
+
+  .tech-small-google-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    background: rgba(26, 115, 232, 0.08);
+    border: 1px solid rgba(26, 115, 232, 0.25);
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #1a73e8;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
   /* ================================================================
      SYSTEM ARCHITECTURE FLOW (UNBOXED OPEN CANVAS)
      ================================================================ */
@@ -920,7 +947,7 @@
 
   .system-design-flow-canvas {
     width: 100%;
-    height: 480px;
+    height: 500px;
     position: relative;
   }
 
@@ -930,7 +957,7 @@
 
   .system-design-flow-canvas .react-flow__edge-text {
     font-family: 'JetBrains Mono', monospace !important;
-    font-size: 12px !important;
+    font-size: 11px !important;
     font-weight: 700 !important;
     fill: #0f172a !important;
   }
@@ -956,26 +983,65 @@
     box-shadow: 0 4px 14px rgba(0,0,0,0.06);
     border: 1px solid #e2e8f0;
     background: #ffffff;
+    z-index: 5;
   }
 
   /* Compact Architecture Node UI */
   .sys-arch-node {
-    width: 175px;
-    padding: 10px 12px;
+    width: 230px;
+    padding: 14px 16px;
     background: #ffffff;
     border: 1.5px solid rgba(226, 232, 240, 0.95);
-    border-radius: 12px;
+    border-radius: 14px;
     box-shadow: 0 4px 14px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(15, 23, 42, 0.03);
     position: relative;
     transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
     font-family: 'Instrument Sans', sans-serif;
-    cursor: grab;
+    cursor: pointer;
   }
 
   .sys-arch-node:hover {
     transform: translateY(-2px);
     border-color: var(--node-accent);
-    box-shadow: 0 10px 25px -4px rgba(15, 23, 42, 0.12), 0 0 0 1px var(--node-accent);
+    box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.14), 0 0 0 1px var(--node-accent);
+  }
+
+  .sys-arch-node.selected {
+    border-color: var(--node-accent);
+    box-shadow: 0 12px 30px -4px rgba(15, 23, 42, 0.18), 0 0 0 2px var(--node-accent);
+  }
+
+  .sys-arch-node.is-google {
+    border: 2px solid #1A73E8;
+    box-shadow: 0 6px 20px -4px rgba(26, 115, 232, 0.16), 0 1px 3px rgba(15, 23, 42, 0.03);
+  }
+
+  .sys-arch-google-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.6rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    color: #1a73e8;
+    background: #e8f0fe;
+    border: 1px solid rgba(66, 133, 244, 0.25);
+    padding: 1px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  .sys-arch-sla {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.58rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: #166534;
+    background: #dcfce7;
+    padding: 1px 5px;
+    border-radius: 3px;
   }
 
   .sys-arch-handle {
@@ -996,23 +1062,23 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
   }
 
   .sys-arch-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    font-size: 0.9rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: 0.95rem;
   }
 
   .sys-arch-meta {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
   }
 
   .sys-arch-step {
@@ -1031,9 +1097,9 @@
   }
 
   .sys-arch-title {
-    font-size: 0.82rem;
+    font-size: 0.88rem;
     font-weight: 700;
-    color: #1e293b;
+    color: #0f172a;
     margin-bottom: 2px;
     line-height: 1.2;
     white-space: nowrap;
@@ -1042,10 +1108,10 @@
   }
 
   .sys-arch-subtitle {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     color: #64748b;
     margin-bottom: 6px;
-    line-height: 1.2;
+    line-height: 1.25;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1054,17 +1120,18 @@
   .sys-arch-pills {
     display: flex;
     flex-wrap: wrap;
-    gap: 3px;
+    gap: 4px;
+    margin-top: 4px;
   }
 
   .sys-arch-pill {
     display: inline-block;
-    padding: 1px 5px;
-    font-size: 0.6rem;
+    padding: 1px 6px;
+    font-size: 0.62rem;
     font-weight: 600;
     color: #475569;
     background: #f1f5f9;
-    border-radius: 3px;
+    border-radius: 4px;
   }
 
   /* Pipeline legend bar at bottom of canvas */
