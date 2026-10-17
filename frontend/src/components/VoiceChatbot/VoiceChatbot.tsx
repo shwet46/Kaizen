@@ -870,7 +870,6 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
                                     </motion.div>
                                 ))}
 
-                                {/* Greeting loading shimmer */}
                                 {greetingLoading && messages.length === 0 && (
                                     <motion.div
                                         initial={{ opacity: 0, y: 6 }}
