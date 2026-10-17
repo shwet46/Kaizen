@@ -1,101 +1,95 @@
 import axios from 'axios';
 
-/**
- * Resolves the Voice Chatbot & Speech Intelligence backend URL.
- * Prefers VITE_VOICE_CHATBOT_API if explicitly set.
- * In local development (localhost / 127.0.0.1), defaults to local Python bot on port 5001.
- * Otherwise falls back to cloud production deployment.
- */
-export const getVoiceBotApiUrl = (): string => {
-  if (import.meta.env.VITE_VOICE_CHATBOT_API) {
-    return import.meta.env.VITE_VOICE_CHATBOT_API.replace(/\/$/, '');
-  }
-  if (
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ) {
-    return 'http://localhost:5001';
-  }
-  return 'https://kaizen-bot-awcf.onrender.com';
-};
-
-/**
- * Transcribes audio blob using Google Cloud Speech-to-Text via backend bot API.
- */
-export async function transcribeAudioBlob(audioBlob: Blob, language = 'en-IN'): Promise<string> {
-  const apiUrl = getVoiceBotApiUrl();
-  const formData = new FormData();
-  const filename = audioBlob.type.includes('wav') ? 'recording.wav' : 'recording.webm';
-  formData.append('audio', audioBlob, filename);
-  formData.append('language', language);
-
-  const response = await axios.post(`${apiUrl}/api/voice/transcribe`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-    timeout: 35000,
-  });
-
-  return (response.data?.transcript || '').trim();
-}
-
-/**
- * Synthesizes text into high-fidelity speech audio using Google Cloud Text-to-Speech.
- */
-export async function synthesizeSpeechAudio(
-  text: string,
-  language = 'en-IN',
-  speaker = 'meera'
-): Promise<Blob> {
-  const apiUrl = getVoiceBotApiUrl();
-  const cleanText = text
-    .replace(/#+\s*/g, '')
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/[•-]/g, ' ')
-    .replace(/\n+/g, ' ')
-    .trim();
-
-  const response = await axios.post(
-    `${apiUrl}/api/voice/synthesize`,
-    {
-      text: cleanText || text,
-      language,
-      speaker,
-    },
-    {
-      responseType: 'blob',
-      timeout: 30000,
-    }
-  );
-
-  return response.data;
-}
-
-/**
- * Checks if browser has native Web Speech Recognition support.
- */
+// Check for native browser SpeechRecognition
 export function hasNativeSpeechRecognition(): boolean {
-  if (typeof window === 'undefined') return false;
   const w = window as any;
-  return Boolean(w.SpeechRecognition || w.webkitSpeechRecognition);
+  return !!(w.SpeechRecognition || w.webkitSpeechRecognition);
 }
 
-/**
- * Supported MIME type selector for MediaRecorder fallback across browsers.
- */
-export function getSupportedAudioMimeType(): string {
-  if (typeof MediaRecorder === 'undefined') return 'audio/webm';
-  const candidates = [
+// Get supported MIME type for MediaRecorder
+export function getSupportedAudioMimeType(): string | undefined {
+  const mimeTypes = [
     'audio/webm;codecs=opus',
     'audio/webm',
     'audio/ogg;codecs=opus',
     'audio/ogg',
     'audio/mp4',
-    'audio/wav',
   ];
-  for (const candidate of candidates) {
-    if (MediaRecorder.isTypeSupported(candidate)) {
-      return candidate;
+  if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) {
+    return undefined;
+  }
+  for (const mimeType of mimeTypes) {
+    if (MediaRecorder.isTypeSupported(mimeType)) {
+      return mimeType;
     }
   }
-  return '';
+  return undefined;
+}
+
+// Simple microphone access request
+export async function requestMicrophoneAccess(): Promise<void> {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Immediately stop the tracks to release the microphone, as we only wanted to prompt for permission
+    stream.getTracks().forEach((track) => track.stop());
+  } catch (error) {
+    console.error("Microphone access request failed:", error);
+    throw error;
+  }
+}
+
+// Transcribe audio via the backend
+export async function transcribeAudioBlob(blob: Blob, language: string): Promise<string> {
+  const formData = new FormData();
+  formData.append('audio', blob, 'audio.webm');
+  formData.append('language', language);
+
+  try {
+    const response = await fetch('/api/chat/transcribe', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Server error: ${response.status} ${response.statusText} - ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data.transcript || '';
+  } catch (error) {
+    console.error('Transcription service error:', error);
+    throw new Error('Failed to transcribe audio. Please check the network connection and backend service.');
+  }
+}
+
+export function getVoiceBotApiUrl(): string {
+    return import.meta.env.VITE_BOT_API_URL || (
+        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+            ? 'http://localhost:8001'
+            : 'https://kaizen-bot-backend.onrender.com'
+    );
+}
+
+export function speakTextLocally(text: string, lang: string): boolean {
+    if (typeof SpeechSynthesisUtterance === 'undefined' || typeof window.speechSynthesis === 'undefined') {
+        return false;
+    }
+    try {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang;
+        window.speechSynthesis.speak(utterance);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+export async function synthesizeSpeechAudio(text: string, lang: string): Promise<Blob> {
+    const API_URL = getVoiceBotApiUrl();
+    const response = await axios.post(`${API_URL}/api/voice/synthesize`,
+        { text, language_code: lang },
+        { responseType: 'arraybuffer' }
+    );
+    return new Blob([response.data], { type: 'audio/wav' });
 }

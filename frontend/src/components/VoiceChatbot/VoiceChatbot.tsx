@@ -22,7 +22,12 @@ import {
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { getVoiceBotApiUrl, transcribeAudioBlob, synthesizeSpeechAudio } from '@/lib/voice-service';
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
+import {
+    getVoiceBotApiUrl,
+    speakTextLocally,
+    synthesizeSpeechAudio
+} from '@/lib/voice-service';
 
 const API_URL = getVoiceBotApiUrl();
 // Axios timeout constants (ms)
@@ -61,11 +66,31 @@ interface SpeechRecognitionWindow extends Window {
 
 export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [isRecording, setIsRecording] = useState(false);
-    const [recordingMode, setRecordingMode] = useState<'browser' | 'gcp' | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [messages, setMessages] = useState<Message[]>([]);
-    const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+
+    const {
+        isRecording,
+        recordingMode,
+        interimTranscript,
+        isTranscribing,
+        errorMessage: dictationError,
+        start: startDictation,
+        stop: stopDictation,
+        cancel: cancelDictation,
+    } = useVoiceDictation({
+        language: 'en-IN',
+        onTranscriptUpdate: (fullText, isFinal) => {
+            setTextInput(fullText);
+            if (isFinal && fullText.trim()) {
+                sendTextMessage(fullText, true);
+                setTextInput('');
+            }
+        },
+        onError: (error) => {
+            setSttNotice(error);
+        }
+    });
     const [textInput, setTextInput] = useState('');
     const [isPlayingAudio, setIsPlayingAudio] = useState<string | null>(null);
     const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
@@ -79,11 +104,6 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
     const audioRef = useRef<HTMLAudioElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const objectUrlRef = useRef<string | null>(null);
-    const speechRecognitionRef = useRef<BrowserSpeechRecognition | null>(null);
-    const mediaStreamRef = useRef<MediaStream | null>(null);
-    const isExplicitStopRef = useRef<boolean>(false);
-    const isSwitchingFallbackRef = useRef<boolean>(false);
-    const pendingSubmitVoiceRef = useRef<boolean>(false);
 
     const addMessage = useCallback((type: 'user' | 'assistant', text: string, audio?: string, isVoice?: boolean) => {
         const newMessage: Message = {
@@ -150,7 +170,9 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
         const url = URL.createObjectURL(base64ToBlob(audioBase64, 'audio/wav'));
         objectUrlRef.current = url;
         audioRef.current.src = url;
-        audioRef.current.play().catch(() => {});
+        audioRef.current.play().catch(() => {
+            setSttNotice('Audio playback was blocked. Click the speaker button to play it.');
+        });
         setIsPlayingAudio(messageId);
         audioRef.current.onended = () => setIsPlayingAudio(null);
     }, []);
@@ -218,198 +240,12 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
         await sendTextMessage(query);
     };
 
-    // ===== SPEECH TO TEXT ENGINE =====
-    const startRecording = async () => {
-        setSttNotice(null);
-        isExplicitStopRef.current = false;
-        isSwitchingFallbackRef.current = false;
-        pendingSubmitVoiceRef.current = false;
-
-        const speechWindow = window as SpeechRecognitionWindow;
-        const SpeechRecognitionClass = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
-
-        // 1. Try Browser Native Web Speech API
-        if (SpeechRecognitionClass) {
-            try {
-                const recognition = new SpeechRecognitionClass();
-                recognition.continuous = true;
-                recognition.interimResults = true;
-                recognition.lang = 'en-IN';
-
-                recognition.onresult = (event) => {
-                    let fullFinal = '';
-                    let fullInterim = '';
-                    for (let i = 0; i < event.results.length; i++) {
-                        const item = event.results[i];
-                        const text = item[0]?.transcript || '';
-                        if (item.isFinal) {
-                            fullFinal += text + ' ';
-                        } else {
-                            fullInterim += text;
-                        }
-                    }
-                    const combined = (fullFinal + fullInterim).replace(/\s+/g, ' ').trim();
-                    if (combined) {
-                        setTextInput(combined);
-                    }
-                };
-
-                recognition.onerror = (event) => {
-                    console.log('Speech recognition event:', event.error);
-                    // Do not treat normal pauses as hard errors
-                    if (event.error === 'no-speech' || event.error === 'aborted') {
-                        return;
-                    }
-                    if (event.error === 'not-allowed') {
-                        setSttNotice('Microphone access was denied. Please allow microphone permissions.');
-                        stopRecording();
-                    } else {
-                        // Fallback to MediaRecorder + Google Cloud STT
-                        isSwitchingFallbackRef.current = true;
-                        try {
-                            recognition.abort();
-                        } catch {}
-                        startMediaRecorderFallback();
-                    }
-                };
-
-                recognition.onend = () => {
-                    if (isSwitchingFallbackRef.current) return;
-
-                    // If user did not click stop, keep listening through brief speech pauses
-                    if (!isExplicitStopRef.current && isRecording) {
-                        try {
-                            recognition.start();
-                            return;
-                        } catch {}
-                    }
-
-                    setIsRecording(false);
-                    setRecordingMode(null);
-                    speechRecognitionRef.current = null;
-                };
-
-                recognition.start();
-                speechRecognitionRef.current = recognition;
-                setIsRecording(true);
-                setRecordingMode('browser');
-                return;
-            } catch (err) {
-                console.warn('Web Speech API failed to initialize, falling back to Google Cloud STT:', err);
-            }
-        }
-
-        // 2. Fallback to MediaRecorder + Google Cloud Speech-to-Text
-        await startMediaRecorderFallback();
-    };
-
-    const startMediaRecorderFallback = async () => {
-        isSwitchingFallbackRef.current = false;
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            mediaStreamRef.current = stream;
-            const recorder = new MediaRecorder(stream);
-            const chunks: Blob[] = [];
-
-            recorder.ondataavailable = (e) => {
-                if (e.data.size > 0) chunks.push(e.data);
-            };
-
-            recorder.onstop = async () => {
-                const mimeType = recorder.mimeType || 'audio/webm';
-                const audioBlob = new Blob(chunks, { type: mimeType });
-                if (mediaStreamRef.current) {
-                    mediaStreamRef.current.getTracks().forEach(track => track.stop());
-                    mediaStreamRef.current = null;
-                }
-
-                // Send to backend Google Cloud STT
-                await transcribeAudioWithGCP(audioBlob);
-            };
-
-            recorder.start(250);
-            setMediaRecorder(recorder);
-            setIsRecording(true);
-            setRecordingMode('gcp');
-        } catch (error) {
-            console.error('Microphone access failed:', error);
-            setSttNotice('Could not access microphone. Please check browser permissions.');
-            setIsRecording(false);
-            setRecordingMode(null);
-        }
-    };
-
-    const transcribeAudioWithGCP = async (audioBlob: Blob) => {
-        setIsProcessing(true);
-        setSttNotice('Transcribing speech with Google Cloud STT...');
-        try {
-            const transcript = await transcribeAudioBlob(audioBlob, 'en-IN');
-            if (transcript.trim()) {
-                const spokenQuery = transcript.trim();
-                setTextInput(spokenQuery);
-                setSttNotice(null);
-
-                // If user clicked "Done & Send", automatically submit now that audio is transcribed!
-                if (pendingSubmitVoiceRef.current) {
-                    pendingSubmitVoiceRef.current = false;
-                    setTextInput('');
-                    void sendTextMessage(spokenQuery, true);
-                }
-            } else {
-                setSttNotice('No speech detected. Please speak into the microphone and try again.');
-                pendingSubmitVoiceRef.current = false;
-            }
-        } catch (err) {
-            console.error('GCP STT failed:', err);
-            setSttNotice('Google Cloud transcription service was unreachable. Please type your question.');
-            pendingSubmitVoiceRef.current = false;
-        } finally {
-            setIsProcessing(false);
-            setIsRecording(false);
-            setRecordingMode(null);
-        }
-    };
-
-    const stopRecording = () => {
-        isExplicitStopRef.current = true;
-        if (speechRecognitionRef.current) {
-            try {
-                speechRecognitionRef.current.stop();
-            } catch {}
-            speechRecognitionRef.current = null;
-        }
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-            try {
-                mediaRecorder.stop();
-            } catch {}
-            setMediaRecorder(null);
-        }
-        if (mediaStreamRef.current) {
-            try {
-                mediaStreamRef.current.getTracks().forEach(track => track.stop());
-            } catch {}
-            mediaStreamRef.current = null;
-        }
-        setIsRecording(false);
-        setRecordingMode(null);
-        inputRef.current?.focus();
-    };
-
     const handleVoiceDoneAndSubmit = async () => {
-        if (recordingMode === 'gcp') {
-            // Signal onstop to send query once transcription finishes
-            pendingSubmitVoiceRef.current = true;
-            stopRecording();
-        } else {
-            // Native browser speech mode: transcript is already in textInput
-            stopRecording();
-            setTimeout(() => {
-                const query = textInput.trim();
-                if (query) {
-                    setTextInput('');
-                    void sendTextMessage(query, true);
-                }
-            }, 100);
+        stopDictation();
+        const query = textInput.trim();
+        if (query) {
+            setTextInput('');
+            await sendTextMessage(query, true);
         }
     };
 
@@ -440,7 +276,9 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
             const url = URL.createObjectURL(blob);
             objectUrlRef.current = url;
             audioRef.current.src = url;
-            audioRef.current.play().catch(() => {});
+            audioRef.current.play().catch(() => {
+                setSttNotice('Audio playback was blocked. Click the speaker button to play it.');
+            });
             setIsPlayingAudio(messageId);
             audioRef.current.onended = () => setIsPlayingAudio(null);
             return;
@@ -469,6 +307,9 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
             }
         } catch (err) {
             console.error('GCP TTS synthesis failed:', err);
+            if (!speakTextLocally(text, 'en-IN')) {
+                setSttNotice('Text-to-speech is unavailable in this browser.');
+            }
         } finally {
             setLoadingAudioId(null);
         }
@@ -982,7 +823,7 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    onClick={stopRecording}
+                                                    onClick={() => cancelDictation()}
                                                     className="px-2 py-1 rounded-md bg-[#EA4335] text-white hover:bg-[#C5221F] text-xs font-sans font-medium flex items-center gap-1 cursor-pointer transition-colors"
                                                 >
                                                     <Square className="w-3 h-3 fill-white" />
@@ -1010,7 +851,7 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
                                     {/* Microphone recording button */}
                                     <button
                                         type="button"
-                                        onClick={isRecording ? stopRecording : startRecording}
+                                        onClick={() => isRecording ? stopDictation() : startDictation()}
                                         disabled={isProcessing}
                                         className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all cursor-pointer shrink-0 border ${
                                             isRecording

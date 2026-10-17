@@ -25,7 +25,7 @@ load_dotenv(os.path.join(bot_dir, '.env'))
 load_dotenv(os.path.join(root_dir, '.env'))
 
 # Import services
-from services.sarvam_service import SarvamService
+from services.gcp_stt_tts import GCPSttTtsService
 from services.mongodb_service import MongoDBService
 from services.insights_engine import InsightsEngine
 
@@ -57,10 +57,10 @@ def health():
 
 # Initialize services with graceful fallback if credentials/DB are unavailable
 try:
-    sarvam_service = SarvamService()
+    gcp_stt_tts_service = GCPSttTtsService()
 except Exception as e:
-    print(f"Warning: SarvamService failed to initialize: {e}")
-    sarvam_service = None
+    print(f"Warning: GCPSttTtsService failed to initialize: {e}")
+    gcp_stt_tts_service = None
 
 try:
     mongodb_service = MongoDBService()
@@ -192,7 +192,7 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'services': {
-            'sarvam': 'connected',
+            'gcp_stt_tts': 'connected',
             'mongodb': 'connected',
             'insights': 'ready'
         }
@@ -205,7 +205,7 @@ def get_introduction():
         language = request.args.get('language', 'en-IN')
         
         # Generate introduction audio
-        audio_bytes = sarvam_service.get_introduction_audio(language)
+        audio_bytes = gcp_stt_tts_service.get_introduction_audio(language)
         
         if audio_bytes:
             # Return audio file
@@ -226,6 +226,9 @@ def get_introduction():
 def transcribe_audio():
     """Convert speech to text"""
     try:
+        if not gcp_stt_tts_service:
+            return jsonify({'error': 'Speech service is not configured'}), 503
+
         # Get audio data from request
         if 'audio' not in request.files:
             return jsonify({'error': 'No audio file provided'}), 400
@@ -237,7 +240,7 @@ def transcribe_audio():
         language = request.form.get('language', 'en-IN')
         
         # Transcribe using Google Cloud STT
-        transcript = sarvam_service.speech_to_text(audio_bytes, language, mime_type)
+        transcript = gcp_stt_tts_service.speech_to_text(audio_bytes, language, mime_type)
         
         return jsonify({
             'transcript': transcript or '',
@@ -252,6 +255,9 @@ def transcribe_audio():
 def synthesize_speech():
     """Convert text to speech"""
     try:
+        if not gcp_stt_tts_service:
+            return jsonify({'error': 'Speech service is not configured'}), 503
+
         data = request.get_json()
         
         if not data or 'text' not in data:
@@ -262,7 +268,7 @@ def synthesize_speech():
         speaker = data.get('speaker', 'meera')
         
         # Generate speech using Google Cloud TTS
-        audio_bytes = sarvam_service.text_to_speech(
+        audio_bytes = gcp_stt_tts_service.text_to_speech(
             text,
             language=language,
             speaker=speaker
@@ -309,8 +315,8 @@ def process_query():
         }
         
         # Optionally generate audio response
-        if return_audio and sarvam_service:
-            audio_bytes = sarvam_service.text_to_speech(
+        if return_audio and gcp_stt_tts_service:
+            audio_bytes = gcp_stt_tts_service.text_to_speech(
                 response_text,
                 language=f'{language}-IN'
             )
@@ -352,8 +358,8 @@ def text_chat():
         
         # Optionally generate TTS audio
         response_audio = None
-        if data.get('with_audio', False) and sarvam_service:
-            audio_bytes = sarvam_service.text_to_speech(response_text, language=language)
+        if data.get('with_audio', False) and gcp_stt_tts_service:
+            audio_bytes = gcp_stt_tts_service.text_to_speech(response_text, language=language)
             if audio_bytes:
                 response_audio = base64.b64encode(audio_bytes).decode('utf-8')
         
@@ -372,6 +378,9 @@ def text_chat():
 def voice_chat():
     """Complete voice chat flow: STT -> Insights -> TTS"""
     try:
+        if not gcp_stt_tts_service:
+            return jsonify({'error': 'Speech service is not configured'}), 503
+
         # Get audio data
         if 'audio' not in request.files:
             return jsonify({'error': 'No audio file provided'}), 400
@@ -384,12 +393,12 @@ def voice_chat():
         lang_code = language.split('-')[0]  # Extract 'en' from 'en-IN'
         
         # Step 1: Transcribe audio
-        transcript = sarvam_service.speech_to_text(audio_bytes, language, mime_type)
+        transcript = gcp_stt_tts_service.speech_to_text(audio_bytes, language, mime_type)
         
         if transcript is None:
             # STT completely failed (error, not just silence)
             fallback = "I had trouble recognizing the audio. Please try speaking again."
-            audio = sarvam_service.text_to_speech(fallback, language=language)
+            audio = gcp_stt_tts_service.text_to_speech(fallback, language=language)
             return jsonify({
                 'transcript': '',
                 'response_text': fallback,
@@ -400,7 +409,7 @@ def voice_chat():
         if not transcript.strip():
             # No speech detected
             fallback = "I didn't detect any speech. Please try speaking again."
-            audio = sarvam_service.text_to_speech(fallback, language=language)
+            audio = gcp_stt_tts_service.text_to_speech(fallback, language=language)
             return jsonify({
                 'transcript': '',
                 'response_text': fallback,
@@ -412,7 +421,7 @@ def voice_chat():
         response_text = insights_engine.process_query(transcript, lang_code)
         
         # Step 3: Generate speech
-        response_audio = sarvam_service.text_to_speech(
+        response_audio = gcp_stt_tts_service.text_to_speech(
             response_text,
             language=language
         )

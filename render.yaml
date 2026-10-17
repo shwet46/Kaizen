@@ -69,7 +69,7 @@ services:
     plan: free
     rootDir: backend/bot
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
+    startCommand: gunicorn gcp_stt_tts:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120
     healthCheckPath: /health
     autoDeploy: true
     envVars:
@@ -105,6 +105,6 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        sync: false
+        value: https://kaizen-backend-8x01.onrender.com/api
       - key: VITE_VOICE_CHATBOT_API
-        sync: false
+        value: https://kaizen-bot-awcf.onrender.com

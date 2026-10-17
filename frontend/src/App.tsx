@@ -12,6 +12,7 @@ import HRRetention from "@/pages/HRRetention"
 import AllocationSimulation from "@/pages/AllocationSimulation"
 import MeetingTranscript from "@/pages/MeetingTranscript"
 import LandingPage from "@/pages/LandingPage"
+import PitchPage from '@/pages/PitchPage';
 import { VoiceChatbot } from "@/components/VoiceChatbot/VoiceChatbot"
 import { motion } from "framer-motion"
 import {
@@ -87,6 +88,7 @@ function App() {
 
   // --- State Merged ---
   const showLanding = location.pathname === '/'
+  const showPitch = location.pathname === '/pitch'
   const activeTab = tabForPath(location.pathname)
 
   const [githubConnected, setGithubConnected] = useState<boolean | null>(null)
@@ -107,11 +109,12 @@ function App() {
   const [voiceOpenSignal, setVoiceOpenSignal] = useState(0)
 
   useEffect(() => {
-    const validPath = showLanding ? '/' : dashboardPaths[activeTab]
+    if (showLanding || showPitch) return
+    const validPath = dashboardPaths[activeTab]
     if (location.pathname !== validPath) {
       navigate(validPath, { replace: true })
     }
-  }, [location.pathname, activeTab, navigate, showLanding])
+  }, [location.pathname, activeTab, navigate, showLanding, showPitch])
 
   // No role sync effect needed, userRole is derived during render.
 
@@ -149,6 +152,11 @@ function App() {
   // Landing Page
   if (showLanding) {
     return <LandingPage />
+  }
+
+  // Pitch Deck Presentation Page
+  if (showPitch) {
+    return <PitchPage />
   }
 
   // Knowledge Graph 3D Full Screen Overlay

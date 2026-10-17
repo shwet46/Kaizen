@@ -8,7 +8,7 @@ import io
 from typing import Optional, Dict, Any
 
 
-class SarvamService:
+class GCPSttTtsService:
     """
     Maintains SarvamService class interface for backwards compatibility with bot/app.py,
     powered by Google Cloud Text-to-Speech and Speech-to-Text APIs.
@@ -213,8 +213,12 @@ class SarvamService:
 
             lang_code = language if '-' in language else f"{language}-IN"
 
-            # Convert browser audio to standard 16kHz mono WAV.
-            converted_wav = self._convert_to_pcm_wav(audio_data)
+            # Google accepts WebM/Opus and Ogg/Opus directly. Prefer that
+            # path so production does not depend on an external FFmpeg binary.
+            content_type = (mime_type or '').lower()
+            is_webm = 'webm' in content_type or audio_data.startswith(b'\x1a\x45\xdf\xa3')
+            is_ogg = 'ogg' in content_type or audio_data.startswith(b'OggS')
+            converted_wav = None if is_webm or is_ogg else self._convert_to_pcm_wav(audio_data)
 
             if converted_wav:
                 config = speech.RecognitionConfig(
@@ -226,7 +230,6 @@ class SarvamService:
                 audio = speech.RecognitionAudio(content=converted_wav)
             else:
                 # Fallback: detect format from the browser MIME type or magic bytes.
-                content_type = (mime_type or '').lower()
                 print(f"Attempting fallback with content type: {content_type}")
                 if 'webm' in content_type or audio_data.startswith(b'\x1a\x45\xdf\xa3'):
                     encoding = speech.RecognitionConfig.AudioEncoding.WEBM_OPUS
@@ -238,8 +241,15 @@ class SarvamService:
                     print("Fallback: Detected OGG_OPUS")
                 elif audio_data.startswith(b'RIFF'):
                     encoding = speech.RecognitionConfig.AudioEncoding.LINEAR16
-                    sample_rate = 16000
-                    print("Fallback: Detected LINEAR16 (WAV)")
+                    try:
+                        import wave
+                        with wave.open(io.BytesIO(audio_data), 'rb') as wav:
+                            sample_rate = wav.getframerate()
+                            channels = wav.getnchannels()
+                        print(f"Fallback: Detected LINEAR16 WAV ({sample_rate}Hz, {channels}ch)")
+                    except Exception:
+                        sample_rate = 16000
+                        print("Fallback: Detected LINEAR16 WAV with unknown sample rate")
                 else:
                     encoding = speech.RecognitionConfig.AudioEncoding.LINEAR16
                     sample_rate = 16000
