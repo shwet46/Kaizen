@@ -3,6 +3,7 @@ import {
   transcribeAudioBlob,
   hasNativeSpeechRecognition,
   getSupportedAudioMimeType,
+  requestMicrophoneAccess,
 } from '@/lib/voice-service';
 
 export interface UseVoiceDictationOptions {
@@ -30,6 +31,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions = {}) {
   const isExplicitStopRef = useRef<boolean>(false);
   const isSwitchingFallbackRef = useRef<boolean>(false);
   const activeFieldRef = useRef<string | null>(null);
+  const isRecordingRef = useRef(false);
 
   // Sync ref
   useEffect(() => {
@@ -64,6 +66,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions = {}) {
     }
     cleanupStream();
     setIsRecording(false);
+    isRecordingRef.current = false;
     setRecordingMode(null);
     setActiveField(null);
     setInterimTranscript('');
@@ -81,6 +84,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions = {}) {
       } catch {}
       speechRecognitionRef.current = null;
       setIsRecording(false);
+      isRecordingRef.current = false;
       setRecordingMode(null);
       setActiveField(null);
     }
@@ -144,6 +148,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions = {}) {
           } finally {
             setIsTranscribing(false);
             setIsRecording(false);
+            isRecordingRef.current = false;
             setRecordingMode(null);
             setActiveField(null);
           }
@@ -152,6 +157,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions = {}) {
         recorder.start(250);
         mediaRecorderRef.current = recorder;
         setIsRecording(true);
+        isRecordingRef.current = true;
         setRecordingMode('gcp');
         if (fieldKey) setActiveField(fieldKey);
       } catch (err: any) {
@@ -182,6 +188,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions = {}) {
       // Check native browser Web Speech API
       if (hasNativeSpeechRecognition()) {
         try {
+          await requestMicrophoneAccess();
           const w = window as any;
           const SpeechRecognitionClass = w.SpeechRecognition || w.webkitSpeechRecognition;
           const recognition = new SpeechRecognitionClass();
@@ -242,7 +249,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions = {}) {
             if (isSwitchingFallbackRef.current) return;
 
             // If user did not click stop, keep listening through natural speech pauses
-            if (!isExplicitStopRef.current && isRecording) {
+            if (!isExplicitStopRef.current && isRecordingRef.current) {
               try {
                 recognition.start();
                 return;
@@ -250,25 +257,31 @@ export function useVoiceDictation(options: UseVoiceDictationOptions = {}) {
             }
 
             setIsRecording(false);
+            isRecordingRef.current = false;
             setRecordingMode(null);
             setActiveField(null);
             setInterimTranscript('');
           };
 
-          recognition.start();
           speechRecognitionRef.current = recognition;
           setIsRecording(true);
+          isRecordingRef.current = true;
           setRecordingMode('browser');
+          recognition.start();
           return;
         } catch (err) {
           console.warn('Web Speech API failed to initialize, falling back to Google Cloud STT:', err);
+          speechRecognitionRef.current = null;
+          isRecordingRef.current = false;
+          setIsRecording(false);
+          setRecordingMode(null);
         }
       }
 
       // If Web Speech API not present or failed to start
       await startMediaRecorderFallback(fieldKey);
     },
-    [cleanupAll, language, isRecording, onError, onTranscriptUpdate, startMediaRecorderFallback]
+    [cleanupAll, language, onError, onTranscriptUpdate, startMediaRecorderFallback]
   );
 
   // Toggle dictation on a specific field
