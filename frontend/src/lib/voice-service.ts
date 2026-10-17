@@ -7,8 +7,11 @@ import axios from 'axios';
  * Otherwise falls back to cloud production deployment.
  */
 export const getVoiceBotApiUrl = (): string => {
+  const normalizeBaseUrl = (url: string): string =>
+    url.replace(/\/+$/, '').replace(/\/api$/, '');
+
   if (import.meta.env.VITE_VOICE_CHATBOT_API) {
-    return import.meta.env.VITE_VOICE_CHATBOT_API.replace(/\/$/, '');
+    return normalizeBaseUrl(import.meta.env.VITE_VOICE_CHATBOT_API);
   }
   if (
     typeof window !== 'undefined' &&
