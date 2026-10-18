@@ -176,12 +176,10 @@ Built around two dedicated operating views, the **Project Manager (PM) View** an
 ### 5. Multimodal Conversational Assistant
 - **Natural Language & Voice Queries**: Ask real-time questions in English or regional languages (powered by Google Cloud Speech-to-Text and Text-to-Speech):
   - *"What is Shweta working on?"* — Inspects active deliverables (`KAN-103: CloudFront Distribution & WAF`) and architecture workstreams.
-  - *"How is our sprint velocity?"* — Delivers live completion rates (e.g., 26 of 34 tasks closed, 76.5% velocity).
-  - *"Who committed the most code this sprint?"* — Returns contributor rankings and commit volume metrics (e.g., Maitri leading with 62 commits).
 - **Multilingual Support**: Supports spoken queries and voice synthesis in regional languages (e.g., *"श्वेता किस प्रोजेक्ट पर काम कर रही हैं?"*).
 - **JIRA & GitHub Integration**: Fetches real-time commit telemetry and backlog tickets without context switching.
 - **Voice-to-Voice**: Speak your query, get natural spoken responses alongside interactive dashboard data cards.
-- **Execute Actions**: Dispatch voice commands directly (e.g., *"Assign that task to Maitri"*).
+- **Execute Actions**: Dispatch voice commands directly (e.g., *"Assign that task to Maitri or Ojasvi based on their availibility"*).
 
 ### 6. Financial Intelligence (CapEx/OpEx Tracking)
 - **Sprint-Level Cost Analysis**: Track capital and operational expenses for each sprint:
@@ -476,3 +474,5 @@ Open [http://localhost:5173](http://localhost:5173) in your browser.
 ## License
 
 This project is licensed under the **Apache License 2.0**. See the [LICENSE](LICENSE) file for details.
+
+---
