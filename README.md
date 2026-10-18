@@ -97,8 +97,8 @@ Built around two dedicated operating views, the **Project Manager (PM) View** an
 
 2. Processing Layer
    ├─ Knowledge Graph Builder (Neo4j)
-   ├─ AI Allocation Engine (Gemini + LangChain)
-   ├─ Hierarchical Task Expander (LangChain sequential chain)
+   ├─ AI Allocation Engine (Google Gemini)
+   ├─ Hierarchical Task Expander (sequential Gemini orchestration)
    ├─ Delay Prediction Model (ML)
    └─ Financial Calculator (MongoDB)
 
@@ -245,7 +245,7 @@ graph TD
     A[Root Feature: Smart Allocate Epic] --> B[Sub-task: Allocation Engine API]
     A --> C[Sub-task: 3D Graph Visualization]
     A --> D[Sub-task: Database & Telemetry Pipeline]
-    B --> E[Jira #101: Sequential Chain - Backend Dev]
+    B --> E[Jira #101: Sequential Task Allocation - Backend Dev]
     B --> F[Jira #102: Gemini Integration - Backend Dev]
     C --> G[Jira #103: Three.js Graph View - Frontend Dev]
     D --> H[Jira #104: CapEx/OpEx Schema - Data Engineer]
@@ -408,7 +408,7 @@ FRONTEND_URL=http://localhost:5173
 MONGODB_URI=mongodb://localhost:27017/kaizen
 GEMINI_API_KEY=your_gemini_api_key
 VITE_GEMINI_API_KEY=your_gemini_api_key
-GOOGLE_APPLICATION_CREDENTIALS=./gcloud-service-account.json
+GOOGLE_APPLICATION_CREDENTIALS=
 GOOGLE_CLOUD_PROJECT_ID=your_gcp_project_id
 GOOGLE_CLOUD_PROJECT=your_gcp_project_id
 GOOGLE_CLOUD_LOCATION=global
@@ -416,7 +416,7 @@ JWT_SECRET=your_jwt_secret
 VITE_API_URL=http://localhost:8000/api
 VITE_VOICE_CHATBOT_API=http://localhost:5001
 JIRA_BASE_URL=https://your-domain.atlassian.net
-JIRA_PROJECT_KEY=KAN
+JIRA_PROJECT_KEY=
 JIRA_EMAIL=your-email@example.com
 JIRA_API_TOKEN=your_jira_api_token
 GITHUB_DEFAULT_REPO=owner/repo
@@ -455,19 +455,6 @@ python app.py
 ```
 
 Open [http://localhost:5173](http://localhost:5173) in your browser.
-
----
-
-## Roadmap
-
-- [ ] **Multi-tenant support for enterprise customers**
-- [ ] **Slack/Teams integration for meeting bot**
-- [ ] **Advanced conflict resolution algorithms**
-- [ ] **Custom ML model training per organization**
-- [ ] **Mobile apps (iOS/Android)**
-- [ ] **On-premise deployment option**
-- [ ] **Advanced financial forecasting (cash flow, burn rate)**
-- [ ] **Skill gap analysis and training recommendations**
 
 ---
 
