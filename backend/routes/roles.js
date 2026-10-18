@@ -213,6 +213,20 @@ router.post('/auto-assign', async (req, res) => {
     try {
         const Commit = require('../models/Commit');
         const Issue = require('../models/Issue');
+        const autoAssignableRoles = [
+            'Unassigned',
+            'Developer',
+            'Senior Developer',
+            'Tech Lead',
+            'Frontend Developer',
+            'Backend Developer',
+            'DevOps Engineer',
+            'QA Engineer',
+            'AWS Solutions Architect',
+            'AWS Backend Developer',
+            'AWS DevOps Engineer',
+            'AWS Cloud Engineer'
+        ];
         
         // Get users with their activity stats
         const commitStats = await Commit.aggregate([
@@ -240,22 +254,32 @@ router.post('/auto-assign', async (req, res) => {
         const commitMap = new Map(commitStats.map(c => [c._id?.toString(), c]));
         const issueMap = new Map(issueStats.map(i => [i._id?.toString(), i]));
 
-        // Get all unassigned users
-        const unassignedUsers = await User.find({ role: 'Unassigned' });
+        // Re-evaluate engineering users with activity. Non-engineering roles such as
+        // HR and Product Manager are intentionally left under manual governance.
+        const users = await User.find({ role: { $in: autoAssignableRoles } });
         
         const assignments = [];
-        for (const user of unassignedUsers) {
-            const commits = commitMap.get(user._id.toString()) || { totalCommits: 0 };
-            const issues = issueMap.get(user._id.toString()) || { totalIssues: 0 };
+        for (const user of users) {
+            const commits = commitMap.get(user._id.toString()) || {
+                totalCommits: 0,
+                totalAdditions: 0,
+                totalDeletions: 0
+            };
+            const issues = issueMap.get(user._id.toString()) || {
+                totalIssues: 0,
+                totalStoryPoints: 0
+            };
 
-            // Simple heuristic for auto-assignment
-            let suggestedRole = 'Developer';
-            let suggestedSeniority = 1;
+            let suggestedRole = user.role === 'Unassigned' ? 'Developer' : user.role;
+            let suggestedSeniority = user.seniority_level || 1;
 
-            if (commits.totalCommits > 100) {
+            if (commits.totalCommits >= 100 || commits.totalAdditions >= 10000 || issues.totalStoryPoints >= 80) {
                 suggestedRole = 'Senior Developer';
+                suggestedSeniority = 4;
+            } else if (commits.totalCommits >= 50 || commits.totalAdditions >= 5000 || issues.totalStoryPoints >= 40) {
+                suggestedRole = 'Developer';
                 suggestedSeniority = 3;
-            } else if (commits.totalCommits > 50) {
+            } else if (commits.totalCommits > 0 || issues.totalIssues > 0) {
                 suggestedRole = 'Developer';
                 suggestedSeniority = 2;
             }
@@ -273,7 +297,13 @@ router.post('/auto-assign', async (req, res) => {
                 display_name: user.display_name,
                 assigned_role: suggestedRole,
                 seniority_level: suggestedSeniority,
-                based_on: { commits: commits.totalCommits, issues: issues.totalIssues }
+                based_on: {
+                    commits: commits.totalCommits,
+                    additions: commits.totalAdditions,
+                    deletions: commits.totalDeletions,
+                    issues: issues.totalIssues,
+                    story_points: issues.totalStoryPoints
+                }
             });
         }
 
