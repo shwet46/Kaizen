@@ -277,7 +277,7 @@ Status: All Systems Operational
               syncing ? 'opacity-70 cursor-wait' : ''
             }`}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin text-[#4285F4]' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 rounded-full ${syncing ? 'animate-spin text-[#4285F4]' : ''}`} />
             <span>{syncing ? 'Syncing...' : 'Sync Data'}</span>
           </button>
 

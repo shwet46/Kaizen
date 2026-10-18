@@ -347,7 +347,7 @@ Riya (AWS Cloud Engineer):
                 >
                   {audioUploading ? (
                     <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin text-[#4285F4]" />
+                      <Loader2 className="w-3.5 h-3.5 rounded-full animate-spin text-[#4285F4]" />
                       <span>Transcribing Audio...</span>
                     </>
                   ) : (
@@ -439,7 +439,7 @@ Riya (AWS Cloud Engineer):
             {/* GCP Transcription Loader */}
             {isDictationTranscribing && (
               <div className="mb-3 p-2.5 rounded-xl bg-[#FEF7E0] border border-[#FBBC05]/40 text-[#B06000] text-xs font-sans flex items-center gap-2">
-                <Loader2 className="w-4 h-4 animate-spin text-[#FBBC05]" />
+                <Loader2 className="w-4 h-4 rounded-full animate-spin text-[#FBBC05]" />
                 <span>Processing speech audio via Google Cloud Speech-to-Text...</span>
               </div>
             )}
@@ -471,7 +471,7 @@ Riya is working on the SQS queue Terraform configuration and load testing benchm
               >
                 {isAnalyzing ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-[#4285F4]" />
+                    <Loader2 className="w-4 h-4 rounded-full animate-spin text-[#4285F4]" />
                     <span>Analyzing Transcript...</span>
                   </>
                 ) : (
@@ -703,7 +703,7 @@ Riya is working on the SQS queue Terraform configuration and load testing benchm
                       >
                         {isSyncing ? (
                           <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 className="w-4 h-4 rounded-full animate-spin" />
                             <span>Creating Tickets...</span>
                           </>
                         ) : (

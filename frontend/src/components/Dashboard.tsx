@@ -384,10 +384,16 @@ export function Dashboard({ onNavigate, githubConnected, onConnectGitHub }: Dash
             </h2>
             <div className="flex items-center gap-2 text-xs font-sans text-muted-foreground">
               <span className="hidden sm:inline">
-                {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                {currentTime.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short', month: 'short', day: 'numeric' })}
               </span>
               <span className="font-mono font-semibold text-foreground">
-                {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                {currentTime.toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+              </span>
+              <span
+                className="inline-flex items-center px-1.5 py-0.5 rounded-none border border-[#4285F4]/30 bg-[#E8F0FE] text-[#1a73e8] font-mono font-bold text-[10px] tracking-wide"
+                title="Indian Standard Time (Asia/Kolkata, UTC+05:30)"
+              >
+                IST
               </span>
             </div>
           </div>
@@ -623,7 +629,7 @@ export function Dashboard({ onNavigate, githubConnected, onConnectGitHub }: Dash
                   className="p-1 rounded-none border border-border hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                   title="Sync Jira Tickets"
                 >
-                  <RefreshCw className={`w-3 h-3 ${syncingData ? 'animate-spin text-[#4285F4]' : ''}`} />
+                  <RefreshCw className={`w-3 h-3 rounded-full ${syncingData ? 'animate-spin text-[#4285F4]' : ''}`} />
                 </button>
               </div>
 

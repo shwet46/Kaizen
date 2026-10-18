@@ -495,7 +495,7 @@ export function RoleManagement() {
   if (loading) {
     return (
       <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-16 flex flex-col items-center justify-center space-y-4">
-        <Loader2 className="w-8 h-8 animate-spin text-[#4285F4]" />
+        <Loader2 className="w-8 h-8 rounded-full animate-spin text-[#4285F4]" />
         <p className="text-sm font-sans font-medium text-muted-foreground">
           Loading organizational workforce directory...
         </p>
@@ -537,7 +537,7 @@ export function RoleManagement() {
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-sans font-medium border-2 border-border/80 bg-card text-foreground hover:bg-muted/70 transition-all cursor-pointer shadow-[2px_2px_0px_0px_rgba(0,0,0,0.08)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:opacity-50"
             title="Refresh Directory"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin text-[#4285F4]" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 rounded-full ${refreshing ? "animate-spin text-[#4285F4]" : ""}`} />
             <span>Sync</span>
           </button>
 
@@ -548,7 +548,7 @@ export function RoleManagement() {
           >
             {autoAssigning ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin text-amber-300" />
+                <Loader2 className="w-4 h-4 rounded-full animate-spin text-amber-300" />
                 <span>Auto-Assigning...</span>
               </>
             ) : (

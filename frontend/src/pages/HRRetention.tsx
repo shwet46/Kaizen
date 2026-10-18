@@ -321,7 +321,7 @@ export default function HRRetention({ onBack }: HRRetentionProps) {
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         >
-          <RefreshCw className="w-8 h-8" />
+          <RefreshCw className="w-8 h-8 rounded-full" />
         </motion.div>
       </div>
     )
@@ -352,7 +352,7 @@ export default function HRRetention({ onBack }: HRRetentionProps) {
             >
               {generatingInsight ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin text-[#4285F4]" />
+                  <Loader2 className="w-4 h-4 rounded-full animate-spin text-[#4285F4]" />
                   <span>Analyzing Workforce...</span>
                 </>
               ) : (

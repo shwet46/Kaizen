@@ -303,7 +303,7 @@ const FeatureInput = ({ onSubmit, isProcessing }: FeatureInputProps) => {
           {/* Transcribing Indicator */}
           {isTranscribing && isRecordingField === 'feature' && (
             <div className="mt-1.5 px-3 py-1 rounded-lg bg-[#FEF7E0] border border-[#FBBC05]/40 text-xs font-sans text-[#B06000] flex items-center gap-2">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FBBC05]" />
+              <Loader2 className="w-3.5 h-3.5 rounded-full animate-spin text-[#FBBC05]" />
               <span>Transcribing via Google Cloud STT...</span>
             </div>
           )}
@@ -704,7 +704,7 @@ const FeatureInput = ({ onSubmit, isProcessing }: FeatureInputProps) => {
           {/* Transcribing Indicator for Details */}
           {isTranscribing && isRecordingField === 'details' && (
             <div className="mt-1.5 px-3 py-1 rounded-lg bg-[#FEF7E0] border border-[#FBBC05]/40 text-xs font-sans text-[#B06000] flex items-center gap-2">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FBBC05]" />
+              <Loader2 className="w-3.5 h-3.5 rounded-full animate-spin text-[#FBBC05]" />
               <span>Transcribing via Google Cloud STT...</span>
             </div>
           )}
@@ -728,7 +728,7 @@ const FeatureInput = ({ onSubmit, isProcessing }: FeatureInputProps) => {
                   exit={{ opacity: 0 }}
                   className="flex items-center gap-2"
                 >
-                  <Loader2 className="w-4 h-4 animate-spin text-[#4285F4]" />
+                  <Loader2 className="w-4 h-4 rounded-full animate-spin text-[#4285F4]" />
                   <span>AI Analyzing Specs...</span>
                 </motion.div>
               ) : (

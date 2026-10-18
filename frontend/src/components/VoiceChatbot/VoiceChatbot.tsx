@@ -636,7 +636,7 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
                                                         >
                                                             {loadingAudioId === message.id ? (
                                                                 <>
-                                                                    <Loader2 className="w-3 h-3 animate-spin text-[#1A73E8]" />
+                                                                    <Loader2 className="w-3 h-3 rounded-full animate-spin text-[#1A73E8]" />
                                                                     <span>Synthesizing...</span>
                                                                 </>
                                                             ) : isPlayingAudio === message.id ? (

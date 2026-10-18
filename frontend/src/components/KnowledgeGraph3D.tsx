@@ -858,7 +858,7 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
           <motion.div 
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-16 h-16 border-4 border-border border-t-foreground mx-auto mb-6"
+            className="w-16 h-16 rounded-full border-4 border-border border-t-foreground mx-auto mb-6"
           />
           <p className="text-muted-foreground font-mono text-sm uppercase tracking-widest">
             Loading Knowledge Graph...
@@ -962,7 +962,7 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-sans font-medium transition-all cursor-pointer ${showInsights ? 'border-border bg-foreground text-background font-semibold shadow-[2px_2px_0px_0px_rgba(32,33,36,0.12)]' : 'border-border hover:bg-muted'} ${loadingInsights ? 'opacity-70' : ''}`}
             >
               {loadingInsights ? (
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <RefreshCw className="w-3.5 h-3.5 rounded-full animate-spin" />
               ) : (
                 <>
                   <Lightbulb className="w-3.5 h-3.5 sm:hidden" />
@@ -979,7 +979,7 @@ export function KnowledgeGraph3D({ onBack }: KnowledgeGraph3DProps) {
               disabled={syncing}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border bg-card text-foreground text-xs font-sans font-medium hover:bg-muted disabled:opacity-50 transition-all cursor-pointer"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 rounded-full ${syncing ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Sync'}</span>
             </motion.button>
           </div>

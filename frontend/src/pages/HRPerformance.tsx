@@ -295,7 +295,7 @@ export default function HRPerformance({ onBack }: HRPerformanceProps) {
           animate={{ rotate: 360 }}
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
         >
-          <RefreshCw className="w-8 h-8" />
+          <RefreshCw className="w-8 h-8 rounded-full" />
         </motion.div>
       </div>
     )
@@ -379,7 +379,7 @@ export default function HRPerformance({ onBack }: HRPerformanceProps) {
                     >
                       {generatingReport ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Loader2 className="w-4 h-4 rounded-full animate-spin" />
                           <span>Generating...</span>
                         </>
                       ) : (
