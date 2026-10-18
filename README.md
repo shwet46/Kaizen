@@ -5,7 +5,7 @@
 <p align="center">
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/Frontend-React%20%20%7C%20TypeScript-61DAFB?style=flat-square&logo=react&logoColor=black" alt="React" /></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Backend-Node.js%20%7C%20Express-339933?style=flat-square&logo=node.js&logoColor=white" alt="Node.js" /></a>
-  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Voice%20Bot-Python%203.10%2B%20%7C%20Flask-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python Flask" /></a>
+  <a href="https://www.python.org/"><img src="https://img.shields.io/badge/Multimodal%20Bot-Python%203.10%2B%20%7C%20Flask-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python Flask" /></a>
   <a href="https://ai.google.dev/"><img src="https://img.shields.io/badge/AI-Google%20Gemini-8E75C2?style=flat-square&logo=googlegemini&logoColor=white" alt="Google Gemini" /></a>
   <a href="https://www.mongodb.com/"><img src="https://img.shields.io/badge/Database-MongoDB%20Atlas-47A248?style=flat-square&logo=mongodb&logoColor=white" alt="MongoDB" /></a>
   <a href="https://neo4j.com/"><img src="https://img.shields.io/badge/Knowledge%20Graph-Neo4j%20Aura-008CC1?style=flat-square&logo=neo4j&logoColor=white" alt="Neo4j" /></a>
@@ -16,12 +16,12 @@
 
 ### Core Problem
 
-In modern software organizations, engineering activity—code commits, pull requests, backlog execution, and technical workflows—is trapped inside disconnected tools like GitHub, Jira, and manual status reports. This creates a critical operational blind spot: low-level technical signals remain completely isolated from high-level business metrics like delivery health, cost efficiency, productivity, and workforce utilization.
+In modern software organizations, engineering activity, code commits, pull requests, backlog execution, and technical workflows 58is trapped inside disconnected tools like GitHub, Jira, and manual status reports. This creates a critical operational blind spot: low-level technical signals remain completely isolated from high-level business metrics like delivery health, cost efficiency, productivity, and workforce utilization.
 
 Without an automated bridge between technical execution and business strategy:
 - **Delivery Delays are Caught Too Late:** Critical path bottlenecks and dependency risks remain invisible until release deadlines slip.
 - **Resource Allocation Relies on Guesswork:** Headcount and task assignments are determined by subjective intuition rather than empirical codebase familiarity, velocity, and capacity.
-- **Budget & Cost Tracking is Disconnected:** Engineering expenses cannot be tied directly to features, making software capitalization (CapEx/OpEx) and ROI measurement imprecise.
+- **Budget & Cost Tracking is Disconnected:** Engineering expenses cannot be tied directly to features, making software capitalization and ROI measurement imprecise.
 - **High Administrative Overhead:** Engineers and managers lose productive time manually writing tickets, preparing status updates, and context-switching across disparate platforms.
 
 This operational divide forces engineering leaders, product managers, and HR teams into reactive decision-making rather than proactive, data-driven operational excellence.
@@ -38,7 +38,7 @@ Kaizen bridges this operational divide by continuously connecting low-level tech
 
 **Kaizen** is an enterprise engineering intelligence platform that turns GitHub commits, pull requests, Jira backlog telemetry, workforce capacity, and financial data into actionable, boardroom-ready clarity.
 
-Built around two dedicated operating views—the **Project Manager (PM) View** and the **HR View (People Ops)**—Kaizen bridges the divide between low-level technical execution and organizational strategy.
+Built around two dedicated operating views, the **Project Manager (PM) View** and the **HR View (People Ops)**, Kaizen bridges the divide between low-level technical execution and organizational strategy.
 
 <p align="center">
   <img src="assets/readme2.png" alt="Kaizen Intelligence Platform Preview" width="100%" />
@@ -52,30 +52,12 @@ Built around two dedicated operating views—the **Project Manager (PM) View** a
 - [Key Features](#key-features)
 - [System Architecture & Data Flow](#system-architecture--data-flow)
 - [Key Capabilities](#key-capabilities)
-  - [1. Knowledge Graph Engine](#1-knowledge-graph-engine)
-  - [2. Smart Resource Allocation & Simulation](#2-smart-resource-allocation--simulation)
-  - [3. Delay Prediction & Risk Mitigation](#3-delay-prediction--risk-mitigation)
-  - [4. Meeting Intelligence & Auto-Ticketing](#4-meeting-intelligence--auto-ticketing)
-  - [5. Voice-Enabled Conversational Assistant](#5-voice-enabled-conversational-assistant)
-  - [6. Financial Intelligence (CapEx/OpEx Tracking)](#6-financial-intelligence-capexopex-tracking)
-  - [7. HR Performance Analytics](#7-hr-performance-analytics)
-  - [8. Role-Based Dashboards (PM & HR Views)](#8-role-based-dashboards-pm--hr-views)
 - [Usage Examples](#usage-examples)
-  - [Smart Resource Allocation with Graph Expansion](#smart-resource-allocation-with-graph-expansion)
-  - [Delay Prediction](#delay-prediction)
-  - [Meeting Auto-Ticketing](#meeting-auto-ticketing)
-  - [Voice Assistant](#voice-assistant)
-  - [HR Performance Review](#hr-performance-review)
 - [Business Impact](#business-impact)
-- [Security & Compliance](#security--compliance)
 - [Technology Stack](#technology-stack)
 - [Repository Layout](#repository-layout)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
-  - [1. Clone and Install Dependencies](#1-clone-and-install-dependencies)
-  - [2. Configure Environment Variables](#2-configure-environment-variables)
-  - [3. Seed Database (Optional)](#3-seed-database-optional)
-  - [4. Start Development Servers](#4-start-development-servers)
 - [Roadmap](#roadmap)
 - [License](#license)
 
@@ -191,7 +173,7 @@ Built around two dedicated operating views—the **Project Manager (PM) View** a
 - **Manager Review Interface**: Track auto-generated tickets, approve/edit before publishing.
 - **Memory Layer**: Maintains conversation history for continuous context across meetings.
 
-### 5. Voice-Enabled Conversational Assistant
+### 5. Multimodal Conversational Assistant
 - **Natural Language & Voice Queries**: Ask real-time questions in English or regional languages (powered by Google Cloud Speech-to-Text and Text-to-Speech):
   - *"What is Shweta working on?"* — Inspects active deliverables (`KAN-103: CloudFront Distribution & WAF`) and architecture workstreams.
   - *"How is our sprint velocity?"* — Delivers live completion rates (e.g., 26 of 34 tasks closed, 76.5% velocity).
@@ -290,7 +272,7 @@ graph TD
 4. Edit/approve before publishing
 5. Tickets automatically linked in knowledge graph
 
-### Voice Assistant
+### Multimodal Assistant
 1. Click the floating chatbot widget at the bottom-right corner of any screen.
 2. Speak or type live queries using natural language:
    - *"What is Shweta working on?"*
@@ -298,7 +280,7 @@ graph TD
    - *"Who committed the most code this sprint?"*
 3. Get spoken audio response (Google Cloud TTS) + rich visual dashboard cards.
 4. Execute voice actions:
-   - *"Assign that task to Maitri"*
+   - *"Assign that task to Maitri or Ojasvi according to thier availibility"*
 
 ### HR Performance Review
 1. Switch to HR view
@@ -326,17 +308,6 @@ By transforming engineering operations into measurable business intelligence, or
 
 ---
 
-## Security & Compliance
-
-- **OAuth 2.0**: Secure third-party integrations (GitHub & Atlassian Jira).
-- **Session Management**: Encrypted session tokens with secure state management.
-- **RBAC**: Role-based access control with dedicated **Project Manager (PM)** and **HR** views.
-- **Audit Logs**: Complete historical trail of all decisions, reallocations, and approvals.
-- **Data Encryption**: At-rest and in-transit encryption standards.
-- **GDPR Compliant**: Employee data privacy controls and telemetry governance.
-
----
-
 ## Technology Stack
 
 <p align="center">
@@ -348,7 +319,7 @@ By transforming engineering operations into measurable business intelligence, or
 | **Frontend** | React 19, TypeScript, Vite, Tailwind CSS v4, Radix UI Primitives, Framer Motion, Lucide Icons, Three.js, React-Force-Graph-3D, Recharts, TanStack Query |
 | **Backend API** | Node.js (>=18), Express 4, Mongoose (MongoDB 6+), Neo4j JavaScript Driver, Passport.js (GitHub OAuth 2.0), Node-Cron, Axios |
 | **Multimodal Voice Bot** | Python 3.10+, Flask, Gunicorn, PyMongo, PyDub, Google GenAI SDK (`google-genai`), Requests |
-| **AI & Speech Services** | Google Gemini (2.5 & 2.0 Flash via Vertex AI / GenAI), Google Cloud Speech-to-Text (STT), Google Cloud Text-to-Speech (TTS) |
+| **AI & Speech Services** | Google Gemini (2.5 & 2.0 Flash via Vertex AI), Google Cloud Speech-to-Text (STT), Google Cloud Text-to-Speech (TTS) |
 | **Databases** | MongoDB Atlas (Document Store), Neo4j Aura (Graph Store) |
 | **Integrations** | GitHub REST & Webhooks API, Atlassian Jira Cloud REST API |
 | **DevOps & Cloud** | Google Cloud Run, Docker |
@@ -458,17 +429,6 @@ GITHUB_CALLBACK_URL=http://localhost:8000/api/oauth/github/callback
 NEO4J_URI=neo4j+s://your-instance.databases.neo4j.io
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=your_neo4j_password
-```
-
----
-
-### 3. Seed Database (Optional)
-
-```bash
-cd backend
-npm run seed:roles
-npm run seed:mock
-npm run seed:insights
 ```
 
 ---
