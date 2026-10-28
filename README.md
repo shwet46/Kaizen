@@ -96,6 +96,8 @@ Built around two dedicated operating views, the **Project Manager (PM) View** an
 - **Modular Architecture:** Enables independent enhancement of AI services, analytics, and integrations.
 - **Future-Ready Platform:** Supports additional integrations, advanced predictive models, and multilingual AI assistance.
 
+---
+
 ## Grounding Results
 ### 1. Delay Prediction Engine
 - **Purpose:** Predicts project delays using task dependencies, employee workloads, budgets, deadlines, and historical data.
