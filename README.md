@@ -50,6 +50,8 @@ Built around two dedicated operating views, the **Project Manager (PM) View** an
 
 - [Overview](#overview)
 - [Key Features](#key-features)
+- [Feasibility and Scalibility](#feasibility-and-scalibility)
+- [Grounding Results](#grounding-results)
 - [System Architecture & Data Flow](#system-architecture--data-flow)
 - [Key Capabilities](#key-capabilities)
 - [Usage Examples](#usage-examples)
@@ -78,6 +80,39 @@ Built around two dedicated operating views, the **Project Manager (PM) View** an
 | **Voice-Enabled & Multimodal** | Hands-free business intelligence with conversational voice query and spoken response | Instant status updates on demand |
 | **Multilingual Support** | Conversational queries and voice synthesis in English and regional languages (powered by GCP STT/TTS) | Accessible to globally distributed engineering teams |
 | **Audit Trail** | Complete historical log of all decisions, approvals, and resource reallocations | Full compliance, governance, and audit transparency |
+
+---
+
+## Feasibility and Scalibility
+### Feasibility
+- **Proven Technologies:** Built using established frameworks, APIs, and Google Cloud infrastructure.
+- **Meaningful GenAI Integration:** Gemini automates task decomposition, employee performance report, Jira ticket generation, etc.
+- **Seamless Integration:** GitHub and Jira APIs enable automated engineering data synchronization.
+- **Functional Prototype:** Demonstrates core workflows through interactive dashboards and 3D knowledge graphs.
+
+### Scalability
+- **Cloud-Native Architecture:** Google Cloud Run enables flexible, workload-based scaling.
+- **Multi-Team Adoption:** Designed to support multiple teams, projects, and enterprise organizations.
+- **Modular Architecture:** Enables independent enhancement of AI services, analytics, and integrations.
+- **Future-Ready Platform:** Supports additional integrations, advanced predictive models, and multilingual AI assistance.
+
+## Grounding Results
+### 1. Delay Prediction Engine
+- **Purpose:** Predicts project delays using task dependencies, employee workloads, budgets, deadlines, and historical data.
+- **How it works:** Identifies bottlenecks, skill gaps, staffing issues, and critical-path risks using rules and historical performance.
+- **Output:** Estimated delay days, risk levels, delay probabilities, confidence scores, and mitigation recommendations.
+- **Grounding:** Predictions are explainable and validated against historical project outcomes.
+
+### 2. Smart Resource Allocator
+- **Purpose:** Recommends the most suitable employee for each task.
+- **How it works:** Ranks candidates using a weighted score:
+  - Skill match: **40%**
+  - Experience: **20%**
+  - Availability: **20%**
+  - Past performance: **10%**
+  - Expertise depth: **10%**
+- **Overload Penalty:** Applies a 15% penalty to candidates already assigned to another task.
+- **Output:** A ranked list of employees based on suitability and available capacity.
 
 ---
 
