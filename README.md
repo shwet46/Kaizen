@@ -354,7 +354,7 @@ By transforming engineering operations into measurable business intelligence, or
 | **Frontend** | React 19, TypeScript, Vite, Tailwind CSS v4, Radix UI Primitives, Framer Motion, Lucide Icons, Three.js, React-Force-Graph-3D, Recharts, TanStack Query |
 | **Backend API** | Node.js (>=18), Express 4, Mongoose (MongoDB 6+), Neo4j JavaScript Driver, Passport.js (GitHub OAuth 2.0), Node-Cron, Axios |
 | **Multimodal Voice Bot** | Python 3.10+, Flask, Gunicorn, PyMongo, PyDub, Google GenAI SDK (`google-genai`), Requests |
-| **AI & Speech Services** | Google Gemini (2.5 & 2.0 Flash via Vertex AI), Google Cloud Speech-to-Text (STT), Google Cloud Text-to-Speech (TTS) |
+| **AI & Speech Services** | Google Gemini (2.5 & 2.0 Flash via Agent Platform), Google Cloud Speech-to-Text (STT), Google Cloud Text-to-Speech (TTS) |
 | **Databases** | MongoDB Atlas (Document Store), Neo4j Aura (Graph Store) |
 | **Integrations** | GitHub REST & Webhooks API, Atlassian Jira Cloud REST API |
 | **DevOps & Cloud** | Google Cloud Run, Docker |
