@@ -121,6 +121,12 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
         if (openSignal > 0) setIsOpen(true);
     }, [openSignal]);
 
+    useEffect(() => {
+        const handleOpenEvent = () => setIsOpen(true);
+        window.addEventListener('open-kaizen-chatbot', handleOpenEvent);
+        return () => window.removeEventListener('open-kaizen-chatbot', handleOpenEvent);
+    }, []);
+
     // Auto-scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -487,11 +493,11 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
             {!isOpen && (
                 <button
                     onClick={() => setIsOpen(true)}
-                    className="fixed bottom-6 right-6 w-13 h-13 rounded-full bg-[#202124] text-white flex items-center justify-center cursor-pointer hover:bg-[#303134] hover:scale-105 active:scale-95 transition-all duration-200 z-50 shadow-lg border-2 border-[#202124] group"
+                    className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-[#202124] text-white flex items-center justify-center cursor-pointer hover:bg-[#303134] hover:scale-105 active:scale-95 transition-all duration-200 z-[9999] shadow-2xl border-2 border-white/20 group"
                     aria-label="Open Kaizen AI Assistant"
                     title="Open Kaizen Intelligence"
                 >
-                    <MessageSquareText className="w-5.5 h-5.5 text-white group-hover:scale-110 transition-transform" />
+                    <MessageSquareText className="w-6 h-6 text-white group-hover:scale-110 transition-transform" />
                     <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-[#34A853] rounded-full border-2 border-white animate-pulse" />
                 </button>
             )}
@@ -504,7 +510,7 @@ export const VoiceChatbot: React.FC<VoiceChatbotProps> = ({ openSignal = 0 }) =>
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.18 }}
-                        className="fixed inset-0 bg-[#202124]/40 backdrop-blur-xs z-50 flex items-end sm:items-center justify-center sm:p-4"
+                        className="fixed inset-0 bg-[#202124]/40 backdrop-blur-xs z-[9999] flex items-end sm:items-center justify-center sm:p-4"
                     >
                         <motion.div
                             initial={{ y: 20, opacity: 0, scale: 0.98 }}

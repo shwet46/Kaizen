@@ -36,6 +36,7 @@ const TaskSchema = new mongoose.Schema(
     // Jira / Sprint integration (from both branches)
     jira_issue_key: { type: String },
     jira_issue_id: { type: String },
+    jira_assignee: { type: String },
     sprint_id: { type: String },
     sprint_name: { type: String },
     synced_to_jira: { type: Boolean, default: false },

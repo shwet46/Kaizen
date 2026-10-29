@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { notifyJiraTicketAllocated } from "@/components/JiraTicketNotification";
 import EmployeeCard from "./EmployeeCard";
 import type { Employee } from "./EmployeeCard";
 import { useEffect, useState } from "react";
@@ -404,6 +405,18 @@ const TimelineGraph = ({ isProcessing, onAllocationComplete, featureData, onNavi
       setLlmStatus('Allocation complete!');
       setAllocationComplete(true);
       onAllocationComplete(allocations, llmResponse);
+
+      // Trigger Jira ticket pop-up notification for newly allocated tickets
+      allocations.forEach((alloc, idx) => {
+        notifyJiraTicketAllocated({
+          key: `PROJ-${1001 + idx}`,
+          summary: alloc.task.title,
+          assignee: alloc.employee.name,
+          assigneeRole: alloc.employee.role,
+          priority: alloc.task.estimatedHours > 20 ? 'High' : 'Medium',
+          status: 'Allocated',
+        });
+      });
     };
 
     runAllocation();

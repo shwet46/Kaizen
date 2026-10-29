@@ -36,6 +36,9 @@ router.post('/save-allocation', async (req, res) => {
         const deadline = new Date();
         deadline.setDate(deadline.getDate() + (deadline_weeks || 4) * 7);
 
+        const jiraKey = taskData.jira_issue_key || taskData.key || taskData.jira_key || null;
+        const jiraAssignee = taskData.jira_assignee || taskData.assignee || (allocatedUser ? (allocatedUser.display_name || allocatedUser.name) : null);
+
         // Create or update task document using upsert
         const taskDoc = {
           title: taskData.title,
@@ -46,7 +49,9 @@ router.post('/save-allocation', async (req, res) => {
           estimated_hours: taskData.estimated_hours,
           status: allocatedUser ? 'allocated' : 'pending',
           allocated_to: allocatedUser ? allocatedUser._id : null,
-          synced_to_jira: false,
+          jira_issue_key: jiraKey,
+          jira_assignee: jiraAssignee,
+          synced_to_jira: Boolean(taskData.synced_to_jira || jiraKey),
         };
 
         // Use findOneAndUpdate with upsert to avoid duplicate key errors

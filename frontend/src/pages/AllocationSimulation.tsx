@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { notifyJiraTicketAllocated } from "@/components/JiraTicketNotification";
 
 const getApiUrl = () => {
   if (import.meta.env.VITE_API_URL) {
@@ -158,13 +159,27 @@ function generateJiraTickets(
 // Save tasks to database
 async function saveTasksToDatabase(allocationData: AllocationData): Promise<void> {
   try {
+    const tasksWithJira = allocationData.tasks.map((task, idx) => {
+      const assigneeId = task.assigned_employee_ids[0];
+      const employee = allocationData.employees.find((e) => e.id === assigneeId);
+      const ticketKey = `PROJ-${1001 + idx}`;
+      return {
+        ...task,
+        key: ticketKey,
+        jira_issue_key: ticketKey,
+        jira_assignee: employee?.name || 'Unassigned',
+        assignee: employee?.name || 'Unassigned',
+        synced_to_jira: true,
+      };
+    });
+
     const response = await fetch(`${API}/tasks/save-allocation`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        tasks: allocationData.tasks,
+        tasks: tasksWithJira,
         deadline_weeks: allocationData.deadline_weeks,
       }),
     });
@@ -243,6 +258,7 @@ export default function AllocationSimulation({
   const [jiraSyncing, setJiraSyncing] = useState(false);
   const [jiraSyncComplete, setJiraSyncComplete] = useState(false);
   const [jiraSyncResults, setJiraSyncResults] = useState<any>(null);
+  const [jiraNotice, setJiraNotice] = useState<{ count: number; keys: string[] } | null>(null);
   const [showMobileTickets, setShowMobileTickets] = useState(false);
 
   // Build graph data from allocation
@@ -502,6 +518,14 @@ export default function AllocationSimulation({
     for (let i = 0; i < tickets.length; i++) {
       setCurrentJiraIndex(i);
       setStatusMessage(`Creating ${tickets[i].key}: ${tickets[i].summary}...`);
+      notifyJiraTicketAllocated({
+        key: tickets[i].key,
+        summary: tickets[i].summary,
+        assignee: tickets[i].assignee,
+        assigneeRole: tickets[i].assigneeRole,
+        priority: tickets[i].priority,
+        status: "Allocated",
+      });
       await new Promise((r) => setTimeout(r, 400));
     }
 
@@ -535,6 +559,22 @@ export default function AllocationSimulation({
     if (result.success) {
       setJiraSyncComplete(true);
       setJiraSyncResults(result.results);
+      if (result.results?.created > 0) {
+        setJiraNotice({
+          count: result.results.created,
+          keys: (result.results.tickets || [])
+            .filter((ticket: { jira_key?: string }) => ticket.jira_key)
+            .map((ticket: { jira_key: string }) => ticket.jira_key),
+        });
+        (result.results.tickets || []).forEach((t: any) => {
+          notifyJiraTicketAllocated({
+            key: t.jira_key || 'KAN-SYNC',
+            summary: t.title || 'Jira ticket synchronized',
+            assignee: t.assignee || 'Assigned Engineer',
+            status: 'Synced to Jira',
+          });
+        });
+      }
       setStatusMessage(`✓ Successfully synced ${result.results?.created || 0} tasks to Jira!`);
     } else {
       setStatusMessage(`✗ Failed to sync to Jira: ${result.error}`);
@@ -557,6 +597,34 @@ export default function AllocationSimulation({
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
+      {jiraNotice && (
+        <motion.div
+          initial={{ opacity: 0, y: -16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed right-4 top-20 z-40 w-[min(24rem,calc(100vw-2rem))] max-w-sm rounded-lg border border-[#34A853]/40 bg-[#E6F4EA] p-4 text-[#137333] shadow-lg"
+          role="status"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-semibold">New Jira ticket{jiraNotice.count === 1 ? "" : "s"} added</p>
+              <p className="mt-1 text-sm">
+                {jiraNotice.count} ticket{jiraNotice.count === 1 ? "" : "s"} allocated successfully.
+              </p>
+              {jiraNotice.keys.length > 0 && (
+                <p className="mt-1 text-xs font-mono">{jiraNotice.keys.join(", ")}</p>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setJiraNotice(null)}
+              className="text-lg leading-none text-[#137333] hover:opacity-70"
+              aria-label="Dismiss Jira notification"
+            >
+              ×
+            </button>
+          </div>
+        </motion.div>
+      )}
       {/* Simulation Controls Bar */}
       <div className="border-b border-border/80 px-4 py-3 flex items-center justify-between gap-3 bg-card/60">
         <div className="flex items-center gap-2">

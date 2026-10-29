@@ -14,7 +14,7 @@ import MeetingTranscript from "@/pages/MeetingTranscript"
 import LandingPage from "@/pages/LandingPage"
 import PitchPage from '@/pages/PitchPage';
 import { VoiceChatbot } from "@/components/VoiceChatbot/VoiceChatbot"
-import { motion } from "framer-motion"
+import { JiraTicketNotification } from "@/components/JiraTicketNotification"
 import {
   LiaUsersSolid as Users,
   LiaBrainSolid as Brain,
@@ -176,6 +176,7 @@ function App() {
           <KnowledgeGraph3D onBack={() => navigate(dashboardPaths['dashboard'])} />
         </div>
         <VoiceChatbot openSignal={voiceOpenSignal} />
+        <JiraTicketNotification onNavigateToOverview={() => handleNavigateTab('dashboard')} />
       </div>
     )
   }
@@ -292,8 +293,11 @@ function App() {
         )}
       </div>
 
-      {/* Voice Chatbot Widget - Available on subpages (removed from main dashboard) */}
-      {activeTab !== 'dashboard' && <VoiceChatbot openSignal={voiceOpenSignal} />}
+      {/* Voice Chatbot Widget - Available throughout the dashboard */}
+      <VoiceChatbot openSignal={voiceOpenSignal} />
+
+      {/* Global Jira Ticket Allocated Pop-up Notification */}
+      <JiraTicketNotification onNavigateToOverview={() => handleNavigateTab('dashboard')} />
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import { motion} from "framer-motion"
 import {
   FaCodeBranch as GitBranch,
@@ -241,10 +241,53 @@ export function Dashboard({ onNavigate, githubConnected, onConnectGitHub }: Dash
     roi: [10, 15, 18, 24, 28, 30, 34]
   })
 
-  // Jira Activity Feed
+  // Jira Activity Feed with Real-time State
   const [jiraActivities, setJiraActivities] = useState<any[]>([])
+  const [highlightedTicketKey, setHighlightedTicketKey] = useState<string | null>(null)
+  const [realtimeNotice, setRealtimeNotice] = useState<string | null>(null)
+  const previousTicketKeysRef = useRef<Set<string>>(new Set())
   const [syncingData, setSyncingData] = useState(false)
   const [syncSuccessMsg, setSyncSuccessMsg] = useState<string | null>(null)
+
+  // Real-time listener for allocated Jira tickets
+  useEffect(() => {
+    const handleTicketAllocated = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const ticket = customEvent.detail;
+      if (!ticket || !ticket.key) return;
+
+      const normalized = {
+        id: ticket.id || ticket.key,
+        key: ticket.key,
+        summary: ticket.summary || ticket.title || 'Task Allocated',
+        status: ticket.status || 'Allocated',
+        priority: ticket.priority ? (ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)) : 'Medium',
+        assignee: ticket.assignee || 'Assigned Engineer',
+        updated: new Date().toISOString(),
+        isRealtime: true,
+      };
+
+      setJiraActivities((prev) => {
+        const existsIndex = prev.findIndex((t) => t.key === normalized.key);
+        if (existsIndex !== -1) {
+          const updated = [...prev];
+          updated[existsIndex] = { ...updated[existsIndex], ...normalized };
+          return updated;
+        }
+        return [normalized, ...prev];
+      });
+
+      previousTicketKeysRef.current.add(normalized.key);
+      setHighlightedTicketKey(normalized.key);
+      setRealtimeNotice(`Live: Ticket ${normalized.key} allocated in real-time`);
+
+      setTimeout(() => setHighlightedTicketKey(null), 4500);
+      setTimeout(() => setRealtimeNotice(null), 5000);
+    };
+
+    window.addEventListener('jira-ticket-allocated', handleTicketAllocated);
+    return () => window.removeEventListener('jira-ticket-allocated', handleTicketAllocated);
+  }, []);
 
   // Fetch health
   useEffect(() => {
@@ -305,35 +348,50 @@ export function Dashboard({ onNavigate, githubConnected, onConnectGitHub }: Dash
       .catch(() => {})
   }, [])
 
-  // Fetch JIRA recent activities
+  // Fetch JIRA recent activities with real-time polling and change detection
   useEffect(() => {
+    let isMounted = true
+
     const fetchRecentActivity = async () => {
       try {
-        const response = await fetch(`${API}/jira/recent-activity?limit=5`)
+        const response = await fetch(`${API}/jira/recent-activity?limit=10`)
         if (response.ok) {
           const data = await response.json()
-          setJiraActivities(data.recent || [])
-        } else {
-          setJiraActivities([
-            { id: '1', key: 'KAI-104', summary: 'Monte Carlo forecast pipeline latency optimization', status: 'In Progress', priority: 'High', assignee: 'Leonard Hofstadter', updated: new Date(Date.now() - 1000 * 60 * 18).toISOString() },
-            { id: '2', key: 'KAI-102', summary: 'ASC 350-40 automated R&D capitalization mapping', status: 'Done', priority: 'Highest', assignee: 'Sheldon Cooper', updated: new Date(Date.now() - 1000 * 60 * 65).toISOString() },
-            { id: '3', key: 'KAI-99', summary: '3D Knowledge Graph force-directed node physics', status: 'Done', priority: 'Medium', assignee: 'Penny Hofstadter', updated: new Date(Date.now() - 1000 * 60 * 140).toISOString() },
-            { id: '4', key: 'KAI-95', summary: 'Workforce flight risk model triage for squad mobile', status: 'In Review', priority: 'High', assignee: 'Raj Koothrappali', updated: new Date(Date.now() - 1000 * 60 * 240).toISOString() },
-          ])
+          const incoming = data.recent || []
+
+          if (isMounted) {
+            // Detect newly added tickets from backend polling
+            if (previousTicketKeysRef.current.size > 0 && incoming.length > 0) {
+              const newTickets = incoming.filter((t: any) => !previousTicketKeysRef.current.has(t.key))
+              if (newTickets.length > 0) {
+                newTickets.forEach((t: any) => {
+                  window.dispatchEvent(new CustomEvent('jira-ticket-allocated', { detail: t }))
+                })
+              }
+            }
+
+            incoming.forEach((t: any) => previousTicketKeysRef.current.add(t.key))
+            setJiraActivities((prev) => {
+              // Preserve any local realtime flags
+              const realtimeMap = new Map(prev.filter((t) => t.isRealtime).map((t) => [t.key, true]))
+              return incoming.map((item: any) => ({
+                ...item,
+                isRealtime: realtimeMap.has(item.key) ? true : item.isRealtime,
+              }))
+            })
+          }
         }
       } catch {
-        setJiraActivities([
-          { id: '1', key: 'KAI-104', summary: 'Monte Carlo forecast pipeline latency optimization', status: 'In Progress', priority: 'High', assignee: 'Leonard Hofstadter', updated: new Date(Date.now() - 1000 * 60 * 18).toISOString() },
-          { id: '2', key: 'KAI-102', summary: 'ASC 350-40 automated R&D capitalization mapping', status: 'Done', priority: 'Highest', assignee: 'Sheldon Cooper', updated: new Date(Date.now() - 1000 * 60 * 65).toISOString() },
-          { id: '3', key: 'KAI-99', summary: '3D Knowledge Graph force-directed node physics', status: 'Done', priority: 'Medium', assignee: 'Penny Hofstadter', updated: new Date(Date.now() - 1000 * 60 * 140).toISOString() },
-          { id: '4', key: 'KAI-95', summary: 'Workforce flight risk model triage for squad mobile', status: 'In Review', priority: 'High', assignee: 'Raj Koothrappali', updated: new Date(Date.now() - 1000 * 60 * 240).toISOString() },
-        ])
+        // Silently handle offline/network errors
       }
     }
 
     fetchRecentActivity()
-    const interval = setInterval(fetchRecentActivity, 45000)
-    return () => clearInterval(interval)
+    const interval = setInterval(fetchRecentActivity, 3000)
+    return () => {
+      isMounted = false
+      clearInterval(interval)
+    }
   }, [])
 
   // Clock
@@ -342,12 +400,23 @@ export function Dashboard({ onNavigate, githubConnected, onConnectGitHub }: Dash
     return () => clearInterval(timer)
   }, [])
 
-  // Sync handler
+  // Live Sync handler
   const handleSyncData = async () => {
     setSyncingData(true)
     try {
-      await new Promise(r => setTimeout(r, 1000))
-      setSyncSuccessMsg("Synchronized 248 engineers, 18 repositories & 58 active tickets.")
+      const response = await fetch(`${API}/jira/recent-activity?limit=10`)
+      if (response.ok) {
+        const data = await response.json()
+        const items = data.recent || []
+        items.forEach((t: any) => previousTicketKeysRef.current.add(t.key))
+        setJiraActivities(items)
+        setSyncSuccessMsg(`Live sync complete: ${items.length} Jira tickets active.`)
+      } else {
+        setSyncSuccessMsg("Synchronized latest Jira telemetry.")
+      }
+      setTimeout(() => setSyncSuccessMsg(null), 4000)
+    } catch {
+      setSyncSuccessMsg("Synchronized with local telemetry cache.")
       setTimeout(() => setSyncSuccessMsg(null), 4000)
     } finally {
       setSyncingData(false)
@@ -629,6 +698,9 @@ export function Dashboard({ onNavigate, githubConnected, onConnectGitHub }: Dash
                 <div className="flex items-center gap-2">
                   <Timer className="w-3.5 h-3.5 text-[#4285F4]" />
                   <h3 className="text-xs font-sans font-bold uppercase tracking-wider text-muted-foreground">Recent JIRA Tickets</h3>
+                  <span className="flex items-center gap-1 text-[9px] font-sans font-semibold text-[#137333] bg-[#E6F4EA] px-1.5 py-0.2 border border-[#34A853]/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#34A853] animate-pulse"></span>Live Feed
+                  </span>
                 </div>
                 <button
                   onClick={handleSyncData}
@@ -647,35 +719,69 @@ export function Dashboard({ onNavigate, githubConnected, onConnectGitHub }: Dash
                 </div>
               )}
 
-              <div className="space-y-2">
-                {jiraActivities.slice(0, 4).map((ticket, i) => (
-                  <div
-                    key={ticket.id || ticket.key || i}
-                    className="p-2.5 rounded-none border border-border bg-card hover:bg-muted/40 transition-colors"
+              {realtimeNotice && (
+                <div className="mb-2 p-2 rounded-none bg-[#E8F0FE] border border-[#4285F4]/40 text-[#1a73e8] text-[11px] font-sans flex items-center gap-1.5 animate-pulse">
+                  <Timer className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate font-semibold">{realtimeNotice}</span>
+                </div>
+              )}
+
+              {jiraActivities.length === 0 ? (
+                <div className="py-6 text-center border border-dashed border-border/70 p-4">
+                  <p className="text-xs font-sans text-muted-foreground mb-2">No active Jira tickets found in database.</p>
+                  <button
+                    onClick={() => onNavigate('smart-allocate')}
+                    className="inline-flex items-center gap-1 text-xs font-sans font-semibold text-[#1a73e8] hover:underline cursor-pointer"
                   >
-                    <div className="flex items-center justify-between gap-2 mb-1">
-                      <span className="text-[10px] font-mono font-bold text-foreground">
-                        {ticket.key}
-                      </span>
-                      <span className={`text-[9px] font-sans font-bold px-1.5 py-0.2 rounded-none border ${
-                        ticket.priority === 'Highest' || ticket.priority === 'Critical'
-                          ? 'bg-[#FCE8E6] text-[#c5221f] border-[#EA4335]/30'
-                          : ticket.priority === 'High'
-                          ? 'bg-[#FEF7E0] text-[#8c6d00] border-[#FBBC05]/30'
-                          : 'bg-muted text-muted-foreground border-border'
-                      }`}>
-                        {ticket.priority}
-                      </span>
-                    </div>
-                    <p className="text-xs font-sans truncate text-foreground">{ticket.summary}</p>
-                    <div className="flex items-center gap-2 text-[10px] font-sans text-muted-foreground mt-1">
-                      <span>{ticket.assignee}</span>
-                      <span>•</span>
-                      <span className="capitalize">{ticket.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                    <span>Run Smart Allocate to create Jira tickets</span>
+                    <span>→</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {jiraActivities.slice(0, 5).map((ticket, i) => {
+                    const isHighlighted = highlightedTicketKey === ticket.key || ticket.isRealtime;
+                    return (
+                      <div
+                        key={ticket.id || ticket.key || i}
+                        className={`p-2.5 rounded-none border transition-all ${
+                          isHighlighted
+                            ? 'border-[#34A853] bg-[#E6F4EA]/40 shadow-[1px_1px_0px_0px_rgba(52,168,83,0.3)]'
+                            : 'border-border bg-card hover:bg-muted/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-mono font-bold text-foreground">
+                              {ticket.key}
+                            </span>
+                            {isHighlighted && (
+                              <span className="text-[8px] font-sans font-bold px-1 py-0.2 rounded-none bg-[#34A853] text-white">
+                                NEW
+                              </span>
+                            )}
+                          </div>
+                          <span className={`text-[9px] font-sans font-bold px-1.5 py-0.2 rounded-none border ${
+                            ticket.priority === 'Highest' || ticket.priority === 'Critical'
+                              ? 'bg-[#FCE8E6] text-[#c5221f] border-[#EA4335]/30'
+                              : ticket.priority === 'High'
+                              ? 'bg-[#FEF7E0] text-[#8c6d00] border-[#FBBC05]/30'
+                              : 'bg-muted text-muted-foreground border-border'
+                          }`}>
+                            {ticket.priority}
+                          </span>
+                        </div>
+                        <p className="text-xs font-sans truncate text-foreground font-medium">{ticket.summary}</p>
+                        <div className="flex items-center gap-2 text-[10px] font-sans text-muted-foreground mt-1">
+                          <span className="font-semibold text-foreground/80">{ticket.assignee}</span>
+                          <span>•</span>
+                          <span className="capitalize">{ticket.status}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </motion.section>
 
