@@ -1,4 +1,5 @@
 const Issue = require('../models/Issue');
+const Task = require('../models/Task');
 const Sprint = require('../models/Sprint');
 const User = require('../models/User');
 const SyncState = require('../models/SyncState');
@@ -73,6 +74,47 @@ async function ingestIssues(projectKey) {
                         },
                         { upsert: true }
                     );
+
+                    // Also synchronize status and assignee back to matching Task document
+                    const jiraStatusLower = (i.fields.status?.name || '').toLowerCase();
+                    let mappedTaskStatus = undefined;
+                    if (['done', 'closed', 'resolved'].includes(jiraStatusLower)) {
+                        mappedTaskStatus = 'done';
+                    } else if (['in progress', 'in review', 'testing'].includes(jiraStatusLower)) {
+                        mappedTaskStatus = 'in_progress';
+                    }
+
+                    const taskUpdate = {
+                        jira_issue_key: i.key,
+                        jira_issue_id: i.id,
+                        synced_to_jira: true,
+                    };
+                    if (i.fields.assignee?.displayName) {
+                        taskUpdate.jira_assignee = i.fields.assignee.displayName;
+                    }
+                    if (mappedTaskStatus) {
+                        taskUpdate.status = mappedTaskStatus;
+                    }
+
+                    const escapedSummary = (i.fields.summary || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    await Task.updateMany(
+                        {
+                            $or: [
+                                { jira_issue_key: i.key },
+                                { jira_issue_id: i.id },
+                                {
+                                    title: { $regex: new RegExp(`^${escapedSummary}$`, 'i') },
+                                    $or: [
+                                        { jira_issue_key: { $exists: false } },
+                                        { jira_issue_key: null },
+                                        { jira_issue_key: /^PROJ-/i }
+                                    ]
+                                }
+                            ]
+                        },
+                        { $set: taskUpdate }
+                    );
+
                     totalSuccess++;
                 } catch (err) {
                     console.error(`Failed to ingest issue ${i.key}:`, err.message);

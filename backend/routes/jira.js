@@ -1,310 +1,663 @@
 const express = require('express');
 const router = express.Router();
-const axios = require('axios');
 const Task = require('../models/Task');
-const { searchIssues } = require('../services/jiraClient');
+const Issue = require('../models/Issue');
+const User = require('../models/User');
+const {
+    searchIssues,
+    fetchIssue,
+    createIssue,
+    updateIssue,
+    assignIssue,
+    transitionIssue,
+    getAssignableUsers,
+} = require('../services/jiraClient');
+const { ingestIssues } = require('../services/jiraIngestion');
 
-// ============= TEAM MEMBERS =============
-const TEAM = [
-    { name: 'Shweta', accountId: '712020:f4133ad3-9b22-491e-8260-37d3ce9dcf04', role: 'AWS Solutions Architect' },
-    { name: 'Maitri', accountId: '712020:88eb9ecb-d9f0-40ee-a5d0-9cbe35c6ac8f', role: 'AWS Backend Developer' },
-    { name: 'Ojasvi', accountId: '712020:27f806c7-3623-4153-bb5b-0f60bb121dec', role: 'AWS DevOps Engineer' },
-    { name: 'Riya', accountId: '712020:a0876b3e-cc7b-403e-8aac-a8929a1c080e', role: 'AWS Cloud Engineer' }
-];
+// Helper to get sanitized Jira config
+function getJiraConfig() {
+    const domain = (process.env.JIRA_DOMAIN || process.env.JIRA_BASE_URL || '')
+        .replace(/^https?:\/\//, '')
+        .replace(/\/$/, '');
+    const email = process.env.JIRA_EMAIL;
+    const token = process.env.JIRA_API_TOKEN;
+    const projectKey = process.env.JIRA_PROJECT_KEY || 'KAN';
 
-/**
- * Map task role to team member
- */
-function mapRoleToTeamMember(roleRequired) {
-    const roleMap = {
-        // AWS roles
-        'aws solutions architect': 'Shweta',
-        'aws architect': 'Shweta',
-        'solutions architect': 'Shweta',
-        'cloud architect': 'Shweta',
-        'aws backend developer': 'Maitri',
-        'backend developer': 'Maitri',
-        'backend engineer': 'Maitri',
-        'aws developer': 'Maitri',
-        'backend': 'Maitri',
-        'aws devops engineer': 'Ojasvi',
-        'devops engineer': 'Ojasvi',
-        'devops': 'Ojasvi',
-        'cloud devops': 'Ojasvi',
-        'aws cloud engineer': 'Riya',
-        'cloud engineer': 'Riya',
-        'infrastructure engineer': 'Riya',
-        'sre': 'Riya',
-        // Generic AWS - distribute among team
-        'aws': 'Shweta',
-        // Fallback mappings
-        'frontend': 'Shweta',
-        'qa': 'Riya'
-    };
-
-    const normalizedRole = roleRequired?.toLowerCase() || '';
-    const memberName = roleMap[normalizedRole];
-
-    if (memberName) {
-        return TEAM.find(m => m.name === memberName);
-    }
-
-    // Round-robin if no match
-    return TEAM[Math.floor(Math.random() * TEAM.length)];
+    const isConfigured = Boolean(domain && email && token && projectKey);
+    return { domain, email, token, projectKey, isConfigured };
 }
 
-async function resolveJiraAssignee(member, jiraConfig) {
-    if (!member) return null;
+// In-memory cache for assignable Jira users
+let cachedAssignableUsers = [];
+let cacheExpiry = 0;
 
+async function getProjectAssignableUsers(projectKey) {
+    const now = Date.now();
+    if (cachedAssignableUsers.length > 0 && cacheExpiry > now) {
+        return cachedAssignableUsers;
+    }
     try {
-        const response = await axios.get(`${jiraConfig.baseUrl}/rest/api/3/user/search`, {
-            auth: {
-                username: jiraConfig.email,
-                password: jiraConfig.apiToken,
-            },
-            params: { query: member.name, maxResults: 10 },
-        });
-        const normalizedName = member.name.toLowerCase();
-        const user = response.data.find((candidate) =>
-            candidate.active && candidate.displayName?.toLowerCase().startsWith(normalizedName)
-        );
+        const users = await getAssignableUsers(projectKey);
+        if (users && users.length > 0) {
+            cachedAssignableUsers = users;
+            cacheExpiry = now + 5 * 60 * 1000; // 5 min TTL
+            return users;
+        }
+    } catch (err) {
+        console.warn(`[Jira] Could not fetch assignable users for ${projectKey}:`, err.message);
+    }
+    return cachedAssignableUsers;
+}
 
-        return user ? { ...member, accountId: user.accountId } : null;
-    } catch (error) {
-        console.warn(`Unable to resolve Jira user ${member.name}:`, error.message);
+/**
+ * Resolve a Jira assignee dynamically from task assignee name, email, or role
+ */
+async function resolveJiraAssignee(task, projectKey) {
+    const users = await getProjectAssignableUsers(projectKey);
+    if (!users || users.length === 0) {
         return null;
     }
+
+    const candidateName = (task.jira_assignee || task.assignee || task.allocated_to?.display_name || task.allocated_to?.name || '').toLowerCase().trim();
+    const candidateEmail = (task.allocated_to?.email || '').toLowerCase().trim();
+    const roleStr = (task.role_required || '').toLowerCase();
+
+    // 1. Exact or partial match on email
+    if (candidateEmail) {
+        const emailMatch = users.find(u => u.emailAddress && u.emailAddress.toLowerCase() === candidateEmail);
+        if (emailMatch) return emailMatch;
+    }
+
+    // 2. Exact or substring match on display name
+    if (candidateName) {
+        const nameMatch = users.find(u => {
+            const dn = (u.displayName || '').toLowerCase();
+            return dn === candidateName || dn.includes(candidateName) || candidateName.includes(dn);
+        });
+        if (nameMatch) return nameMatch;
+
+        // Match first name or last name tokens
+        const tokens = candidateName.split(/\s+/).filter(t => t.length > 1);
+        for (const token of tokens) {
+            const tokenMatch = users.find(u => (u.displayName || '').toLowerCase().includes(token));
+            if (tokenMatch) return tokenMatch;
+        }
+    }
+
+    // 3. Fallback to role-based mapping among available users
+    if (roleStr.includes('devops') || roleStr.includes('infra') || roleStr.includes('cloud')) {
+        const devopsUser = users.find(u => /ojasvi/i.test(u.displayName)) || users.find(u => /riya/i.test(u.displayName));
+        if (devopsUser) return devopsUser;
+    }
+    if (roleStr.includes('backend') || roleStr.includes('api') || roleStr.includes('database')) {
+        const backendUser = users.find(u => /maitri/i.test(u.displayName));
+        if (backendUser) return backendUser;
+    }
+    if (roleStr.includes('frontend') || roleStr.includes('ui') || roleStr.includes('architect')) {
+        const frontendUser = users.find(u => /shweta/i.test(u.displayName));
+        if (frontendUser) return frontendUser;
+    }
+
+    // 4. Fallback to the first available assignable user
+    return users[0] || null;
 }
 
 /**
- * Create a Jira issue
+ * Check if a Jira key is valid (not a fake/mock key like PROJ-1001)
  */
-async function createJiraIssue(task, assignee, jiraConfig) {
-    const body = {
-        fields: {
-            project: { key: jiraConfig.projectKey },
-            summary: task.title,
-            description: {
-                type: 'doc',
-                version: 1,
-                content: [
-                    {
-                        type: 'paragraph',
-                        content: [{
-                            type: 'text',
-                            text: task.description || `Task ID: ${task.task_id}\nDeadline: ${task.deadline}\nPriority: ${task.priority}`
-                        }]
-                    }
-                ]
-            },
-            issuetype: { name: 'Task' },
-        }
-    };
-
-    if (assignee?.accountId) {
-        body.fields.assignee = { accountId: assignee.accountId };
-    }
-
-    const auth = {
-        username: jiraConfig.email,
-        password: jiraConfig.apiToken,
-    };
-
-    try {
-        const res = await axios.post(`${jiraConfig.baseUrl}/rest/api/3/issue`, body, { auth });
-        return res.data;
-    } catch (error) {
-        const jiraError = error.response?.data?.errors;
-        const jiraMessage = error.response?.data?.errorMessages;
-        const details = [...(jiraMessage || []), ...Object.values(jiraError || {})].filter(Boolean);
-        throw new Error(details.length > 0 ? details.join('; ') : error.message);
-    }
+function isValidJiraKey(key, projectKey) {
+    if (!key || typeof key !== 'string') return false;
+    const cleanKey = key.trim().toUpperCase();
+    if (cleanKey.startsWith('PROJ-')) return false;
+    if (cleanKey.startsWith(`${projectKey.toUpperCase()}-`)) return true;
+    return /^[A-Z][A-Z0-9]+-\d+$/.test(cleanKey);
 }
 
 /**
  * POST /api/jira/sync-tasks
- * Sync pending tasks to Jira (creates issues and assigns to team members)
+ * Sync tasks to Jira: creates new issues or updates existing issues on Jira dashboard
  */
 router.post('/sync-tasks', async (req, res) => {
     try {
-        const requestedTaskIds = Array.isArray(req.body?.task_ids)
-            ? req.body.task_ids.filter((taskId) => typeof taskId === 'string' && taskId.trim())
-            : null;
-
-        // Get Jira config from env
-        const JIRA_DOMAIN = process.env.JIRA_BASE_URL?.replace(/^https?:\/\//, '').replace(/\/$/, '');
-        const JIRA_EMAIL = process.env.JIRA_EMAIL;
-        const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN;
-        const PROJECT_KEY = process.env.JIRA_PROJECT_KEY;
-
-        if (!JIRA_DOMAIN || !JIRA_EMAIL || !JIRA_API_TOKEN || !PROJECT_KEY) {
-            return res.status(400).json({ 
-                success: false, 
+        const config = getJiraConfig();
+        if (!config.isConfigured) {
+            return res.status(400).json({
+                success: false,
                 error: 'Jira configuration is incomplete. Set JIRA_BASE_URL, JIRA_PROJECT_KEY, JIRA_EMAIL, and JIRA_API_TOKEN.'
             });
         }
 
-        const jiraConfig = {
-            baseUrl: `https://${JIRA_DOMAIN}`,
-            email: JIRA_EMAIL,
-            apiToken: JIRA_API_TOKEN,
-            projectKey: PROJECT_KEY
-        };
+        const requestedTaskIds = Array.isArray(req.body?.task_ids)
+            ? req.body.task_ids.filter((id) => typeof id === 'string' && id.trim())
+            : null;
 
-        // Fetch all pending tasks that are not synced to Jira
-        const taskFilter = requestedTaskIds
-            ? {
-                task_id: { $in: requestedTaskIds },
+        let taskFilter;
+        if (requestedTaskIds && requestedTaskIds.length > 0) {
+            taskFilter = { task_id: { $in: requestedTaskIds } };
+        } else {
+            taskFilter = {
                 $or: [
                     { synced_to_jira: false },
-                    { synced_to_jira: { $exists: false } }
-                ]
-            }
-            : {
-                status: 'pending',
-                $or: [
-                    { synced_to_jira: false },
-                    { synced_to_jira: { $exists: false } }
+                    { synced_to_jira: { $exists: false } },
+                    { jira_issue_key: { $exists: false } },
+                    { jira_issue_key: null },
+                    { jira_issue_key: /^PROJ-/i },
+                    { status: 'allocated' },
                 ]
             };
+        }
 
-        const tasks = await Task.find(taskFilter).sort({ deadline: 1 });
+        const tasks = await Task.find(taskFilter).populate('allocated_to').sort({ deadline: 1 });
 
-        console.log(`Found ${tasks.length} tasks to sync to Jira`);
+        console.log(`[Jira Sync] Found ${tasks.length} tasks to sync with Jira`);
 
         const results = {
             total: tasks.length,
             created: 0,
+            updated: 0,
             skipped: 0,
             failed: 0,
             tickets: []
         };
 
         for (const task of tasks) {
-            // Skip if already synced (double check)
-            if (task.synced_to_jira && task.jira_issue_key) {
-                console.log(`⏭️  ${task.task_id}: Already synced as ${task.jira_issue_key}`);
-                results.skipped++;
-                continue;
-            }
-
-            // Find team member for this task
-            const mappedMember = mapRoleToTeamMember(task.role_required);
+            const hasExistingRealKey = isValidJiraKey(task.jira_issue_key, config.projectKey);
+            const assignee = await resolveJiraAssignee(task, config.projectKey);
 
             try {
-                const assignee = await resolveJiraAssignee(mappedMember, jiraConfig);
-                console.log(`📝 Creating Jira issue: ${task.title}${assignee ? ` for ${assignee.name}` : ' (unassigned)'}`);
-                
-                const issue = await createJiraIssue(task, assignee, jiraConfig);
+                if (hasExistingRealKey) {
+                    // Update existing Jira issue
+                    console.log(`[Jira Sync] 🔄 Updating existing Jira issue ${task.jira_issue_key}: "${task.title}"`);
 
-                // Update task in MongoDB with Jira info
-                await Task.findByIdAndUpdate(task._id, {
-                    jira_issue_key: issue.key,
-                    jira_issue_id: issue.id,
-                    jira_assignee: assignee?.name || null,
-                    synced_to_jira: true,
-                    status: 'allocated'
-                });
+                    const targetStatus = task.status === 'done' ? 'Done' : (task.status === 'in_progress' || task.status === 'allocated') ? 'In Progress' : 'To Do';
 
-                results.created++;
-                results.tickets.push({
-                    task_id: task.task_id,
-                    jira_key: issue.key,
-                    jira_id: issue.id,
-                    assignee: assignee?.name || null,
-                    title: task.title
-                });
+                    await updateIssue(task.jira_issue_key, {
+                        summary: task.title,
+                        description: task.description || `Task ID: ${task.task_id}\nPriority: ${task.priority}\nEstimated Hours: ${task.estimated_hours}`,
+                        priority: task.priority || 'Medium',
+                        assigneeAccountId: assignee?.accountId,
+                        status: targetStatus,
+                    });
 
-                console.log(`   ✅ Created: ${issue.key}${assignee ? ` → Assigned to ${assignee.name}` : ' (unassigned)'}`);
+                    await Task.findByIdAndUpdate(task._id, {
+                        synced_to_jira: true,
+                        jira_assignee: assignee?.displayName || task.jira_assignee,
+                    });
+
+                    // Also update Issue collection
+                    await Issue.findOneAndUpdate(
+                        { key: task.jira_issue_key },
+                        {
+                            key: task.jira_issue_key,
+                            title: task.title,
+                            status: targetStatus,
+                            priority: task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1).toLowerCase() : 'Medium',
+                            updated_at: new Date(),
+                            project_id: config.projectKey,
+                        },
+                        { upsert: true }
+                    );
+
+                    results.updated++;
+                    results.tickets.push({
+                        task_id: task.task_id,
+                        jira_key: task.jira_issue_key,
+                        action: 'updated',
+                        assignee: assignee?.displayName || 'Unassigned',
+                        title: task.title,
+                        status: targetStatus,
+                    });
+                    console.log(`   ✅ Updated: ${task.jira_issue_key} → ${assignee ? assignee.displayName : 'Unassigned'}`);
+                } else {
+                    // Create new issue in Jira
+                    console.log(`[Jira Sync] 📝 Creating new Jira issue: "${task.title}" in ${config.projectKey}`);
+
+                    const descriptionText = task.description || `Task ID: ${task.task_id}\nDeadline: ${task.deadline}\nPriority: ${task.priority}\nEstimated Hours: ${task.estimated_hours || 8}`;
+                    const created = await createIssue(
+                        config.projectKey,
+                        task.title,
+                        descriptionText,
+                        'Task',
+                        assignee?.accountId,
+                        task.priority || 'Medium'
+                    );
+
+                    // If task was already allocated or in progress, transition the Jira issue
+                    const targetStatus = task.status === 'done' ? 'Done' : (task.status === 'in_progress' || task.status === 'allocated') ? 'In Progress' : 'To Do';
+                    if (targetStatus !== 'To Do') {
+                        try {
+                            await transitionIssue(created.key, targetStatus);
+                        } catch (tErr) {
+                            console.warn(`[Jira Sync] Could not transition ${created.key} to ${targetStatus}:`, tErr.message);
+                        }
+                    }
+
+                    // Update task in MongoDB
+                    await Task.findByIdAndUpdate(task._id, {
+                        jira_issue_key: created.key,
+                        jira_issue_id: created.id,
+                        jira_assignee: assignee?.displayName || null,
+                        synced_to_jira: true,
+                        status: task.status === 'pending' ? 'allocated' : task.status,
+                    });
+
+                    // Upsert into Issue collection
+                    await Issue.findOneAndUpdate(
+                        { key: created.key },
+                        {
+                            key: created.key,
+                            issue_id: created.id,
+                            title: task.title,
+                            status: targetStatus,
+                            priority: task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1).toLowerCase() : 'Medium',
+                            created_at: new Date(),
+                            updated_at: new Date(),
+                            project_id: config.projectKey,
+                        },
+                        { upsert: true }
+                    );
+
+                    results.created++;
+                    results.tickets.push({
+                        task_id: task.task_id,
+                        jira_key: created.key,
+                        jira_id: created.id,
+                        action: 'created',
+                        assignee: assignee?.displayName || 'Unassigned',
+                        title: task.title,
+                        status: targetStatus,
+                    });
+                    console.log(`   ✅ Created: ${created.key} → Assigned to ${assignee ? assignee.displayName : 'Unassigned'}`);
+                }
             } catch (err) {
-                console.error(`   ❌ Failed to create Jira issue for ${task.task_id}:`, err.message);
+                console.error(`   ❌ Failed Jira sync for task ${task.task_id}:`, err.message);
                 results.failed++;
                 results.tickets.push({
                     task_id: task.task_id,
                     error: err.message,
-                    assignee: mappedMember?.name || null,
-                    title: task.title
+                    title: task.title,
                 });
             }
         }
 
         res.json({
             success: true,
-            message: `Synced ${results.created} tasks to Jira`,
-            results
+            message: `Synced ${results.created + results.updated} tasks to Jira (${results.created} created, ${results.updated} updated)`,
+            results,
         });
 
     } catch (error) {
-        console.error('Error syncing tasks to Jira:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
+        console.error('[Jira Sync] Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/jira/sync
+ * Two-way sync: in-gest from Jira to DB, then sync tasks to Jira
+ */
+router.post('/sync', async (req, res) => {
+    try {
+        const config = getJiraConfig();
+        if (!config.isConfigured) {
+            return res.status(400).json({
+                success: false,
+                error: 'Jira configuration is incomplete.'
+            });
+        }
+
+        // 1. Ingest latest Jira issues into MongoDB Issue, User, and Task collections
+        const ingestResult = await ingestIssues(config.projectKey);
+
+        // 2. Fetch fresh recent activity
+        const recentResult = await searchIssues(
+            `project = ${config.projectKey} ORDER BY updated DESC`,
+            undefined,
+            10
+        );
+
+        const recentTickets = (recentResult.issues || []).map((issue) => ({
+            id: issue.id || issue.key,
+            key: issue.key,
+            summary: issue.fields?.summary || 'Jira Issue',
+            status: issue.fields?.status?.name || 'Unknown',
+            priority: issue.fields?.priority?.name || 'Medium',
+            assignee: issue.fields?.assignee?.displayName || 'Unassigned',
+            created: issue.fields?.created,
+            updated: issue.fields?.updated || issue.fields?.created,
+        }));
+
+        res.json({
+            success: true,
+            message: `Synchronized with Jira (${ingestResult.success} tickets processed)`,
+            ingested: ingestResult.success,
+            recent: recentTickets,
         });
+    } catch (error) {
+        console.error('[Jira Full Sync] Error:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
 /**
  * GET /api/jira/recent-activity
- * Return the Jira tickets created from allocated tasks for the overview feed.
+ * Return recent Jira tickets (live from Jira API, falling back to MongoDB)
  */
 router.get('/recent-activity', async (req, res) => {
     try {
         const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
-        const jiraDomain = (process.env.JIRA_DOMAIN || process.env.JIRA_BASE_URL || '')
-            .replace(/^https?:\/\//, '')
-            .replace(/\/$/, '');
-        const projectKey = process.env.JIRA_PROJECT_KEY;
+        const shouldSync = req.query.sync === 'true';
+        const config = getJiraConfig();
 
-        if (jiraDomain && process.env.JIRA_EMAIL && process.env.JIRA_API_TOKEN && projectKey) {
-            const result = await searchIssues(
-                `project = ${projectKey} ORDER BY created DESC`,
-                undefined,
-                limit
-            );
+        if (config.isConfigured) {
+            if (shouldSync) {
+                try {
+                    await ingestIssues(config.projectKey);
+                } catch (syncErr) {
+                    console.warn('[Jira] Background ingest failed during recent-activity:', syncErr.message);
+                }
+            }
 
-            return res.json({
-                source: 'jira',
-                recent: (result.issues || []).map((issue) => ({
-                    id: issue.id || issue.key,
-                    key: issue.key,
-                    summary: issue.fields?.summary || 'Jira Issue',
-                    status: issue.fields?.status?.name || 'Unknown',
-                    priority: issue.fields?.priority?.name || 'Medium',
-                    assignee: issue.fields?.assignee?.displayName || 'Unassigned',
-                    created: issue.fields?.created,
-                    updated: issue.fields?.updated || issue.fields?.created,
-                })),
-            });
+            try {
+                const result = await searchIssues(
+                    `project = ${config.projectKey} ORDER BY updated DESC`,
+                    undefined,
+                    limit
+                );
+
+                if (result.issues && result.issues.length > 0) {
+                    return res.json({
+                        source: 'jira',
+                        recent: result.issues.map((issue) => ({
+                            id: issue.id || issue.key,
+                            key: issue.key,
+                            summary: issue.fields?.summary || 'Jira Issue',
+                            status: issue.fields?.status?.name || 'Unknown',
+                            priority: issue.fields?.priority?.name || 'Medium',
+                            assignee: issue.fields?.assignee?.displayName || 'Unassigned',
+                            created: issue.fields?.created,
+                            updated: issue.fields?.updated || issue.fields?.created,
+                        })),
+                    });
+                }
+            } catch (jiraErr) {
+                console.warn('[Jira] Live search failed, falling back to DB:', jiraErr.message);
+            }
         }
 
-        // Keep the feed useful during local development when Jira credentials are not configured.
-        const tasks = await Task.find({
-            $or: [
-                { synced_to_jira: true },
-                { jira_issue_key: { $exists: true, $ne: '' } },
-            ],
-        })
-            .sort({ updatedAt: -1, updated_at: -1, _id: -1 })
+        // Fallback: Query Issue collection first, then Task collection
+        let tickets = [];
+        const dbIssues = await Issue.find({})
+            .sort({ updated_at: -1, updatedAt: -1, _id: -1 })
             .limit(limit)
-            .populate('allocated_to', 'display_name email')
+            .populate('assignee_id', 'display_name email')
             .lean();
 
-        return res.json({
-            source: 'database',
-            recent: tasks.map((task) => ({
+        if (dbIssues && dbIssues.length > 0) {
+            tickets = dbIssues.map((issue) => ({
+                id: issue.issue_id || issue.key || String(issue._id),
+                key: issue.key,
+                summary: issue.title || 'Jira Issue',
+                status: issue.status || 'To Do',
+                priority: issue.priority ? issue.priority.charAt(0).toUpperCase() + issue.priority.slice(1).toLowerCase() : 'Medium',
+                assignee: issue.assignee_id?.display_name || 'Unassigned',
+                created: issue.created_at || issue.createdAt,
+                updated: issue.updated_at || issue.updatedAt || new Date(),
+            }));
+        } else {
+            const dbTasks = await Task.find({
+                $or: [
+                    { synced_to_jira: true },
+                    { jira_issue_key: { $exists: true, $ne: '' } },
+                ]
+            })
+                .sort({ updatedAt: -1, updated_at: -1, _id: -1 })
+                .limit(limit)
+                .populate('allocated_to', 'display_name email')
+                .lean();
+
+            tickets = dbTasks.map((task) => ({
                 id: task.jira_issue_id || task.jira_issue_key || task.task_id || String(task._id),
                 key: task.jira_issue_key,
                 summary: task.title,
                 status: task.status === 'in_progress' ? 'In Progress' : task.status === 'done' ? 'Done' : 'Allocated',
-                priority: task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : 'Medium',
+                priority: task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1).toLowerCase() : 'Medium',
                 assignee: task.jira_assignee || task.allocated_to?.display_name || 'Unassigned',
                 created: task.createdAt || task.created_at,
                 updated: task.updatedAt || task.updated_at || task.created_at,
-            })),
+            }));
+        }
+
+        return res.json({
+            source: 'database',
+            recent: tickets,
         });
+
     } catch (error) {
         console.error('Error getting recent Jira activity:', error);
-        res.status(502).json({ success: false, error: 'Unable to fetch recent Jira tickets.' });
+        res.status(500).json({ success: false, error: 'Unable to fetch recent Jira tickets.' });
+    }
+});
+
+/**
+ * PUT /api/jira/issue/:key
+ * Update a ticket directly in Jira dashboard and sync to MongoDB
+ */
+router.put('/issue/:key', async (req, res) => {
+    try {
+        const { key } = req.params;
+        const config = getJiraConfig();
+        if (!config.isConfigured) {
+            return res.status(400).json({ success: false, error: 'Jira configuration is incomplete.' });
+        }
+
+        const { summary, description, priority, assigneeAccountId, status } = req.body;
+
+        const updatedIssue = await updateIssue(key, {
+            summary,
+            description,
+            priority,
+            assigneeAccountId,
+            status,
+        });
+
+        // Update MongoDB Issue
+        const statusName = updatedIssue.fields?.status?.name || status;
+        const assigneeName = updatedIssue.fields?.assignee?.displayName;
+        await Issue.findOneAndUpdate(
+            { key },
+            {
+                title: updatedIssue.fields?.summary || summary,
+                status: statusName,
+                priority: updatedIssue.fields?.priority?.name || priority,
+                updated_at: new Date(),
+            },
+            { upsert: true }
+        );
+
+        // Update matching Task
+        await Task.updateMany(
+            { jira_issue_key: key },
+            {
+                $set: {
+                    title: updatedIssue.fields?.summary || summary,
+                    jira_assignee: assigneeName,
+                    status: (statusName || '').toLowerCase() === 'done' ? 'done' : /progress|review/i.test(statusName) ? 'in_progress' : 'allocated',
+                    synced_to_jira: true,
+                }
+            }
+        );
+
+        res.json({
+            success: true,
+            message: `Updated issue ${key} in Jira dashboard`,
+            issue: {
+                key: updatedIssue.key,
+                summary: updatedIssue.fields?.summary,
+                status: statusName,
+                assignee: assigneeName || 'Unassigned',
+            }
+        });
+    } catch (error) {
+        console.error(`[Jira] Error updating issue ${req.params.key}:`, error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/jira/create-issue
+ * Create an issue directly in Jira and save to MongoDB
+ */
+router.post('/create-issue', async (req, res) => {
+    try {
+        const config = getJiraConfig();
+        if (!config.isConfigured) {
+            return res.status(400).json({ success: false, error: 'Jira configuration is incomplete.' });
+        }
+
+        const { summary, description, issueType, assigneeAccountId, priority } = req.body;
+        if (!summary) {
+            return res.status(400).json({ success: false, error: 'Summary is required.' });
+        }
+
+        const created = await createIssue(
+            config.projectKey,
+            summary,
+            description,
+            issueType || 'Task',
+            assigneeAccountId,
+            priority || 'Medium'
+        );
+
+        await Issue.create({
+            key: created.key,
+            issue_id: created.id,
+            title: summary,
+            status: 'To Do',
+            priority: priority || 'Medium',
+            project_id: config.projectKey,
+            created_at: new Date(),
+            updated_at: new Date(),
+        });
+
+        res.status(201).json({
+            success: true,
+            issue: {
+                key: created.key,
+                id: created.id,
+                summary,
+            }
+        });
+    } catch (error) {
+        console.error('[Jira] Error creating issue:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/jira/users
+ * Return assignable Jira users
+ */
+router.get('/users', async (req, res) => {
+    try {
+        const config = getJiraConfig();
+        const users = await getProjectAssignableUsers(config.projectKey);
+        res.json({
+            success: true,
+            users: users.map(u => ({
+                accountId: u.accountId,
+                displayName: u.displayName,
+                emailAddress: u.emailAddress || '',
+                active: u.active,
+            }))
+        });
+    } catch (error) {
+        console.error('[Jira] Error fetching users:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/jira/stats
+ * Return Jira ticket statistics
+ */
+router.get('/stats', async (req, res) => {
+    try {
+        const config = getJiraConfig();
+        let total = 0;
+        let completed = 0;
+        let in_progress = 0;
+        let to_do = 0;
+
+        if (config.isConfigured) {
+            try {
+                const searchRes = await searchIssues(`project = ${config.projectKey}`, undefined, 100);
+                const issues = searchRes.issues || [];
+                total = issues.length;
+                for (const i of issues) {
+                    const statusLower = (i.fields?.status?.name || '').toLowerCase();
+                    if (['done', 'closed', 'resolved'].includes(statusLower)) completed++;
+                    else if (['in progress', 'in review', 'testing'].includes(statusLower)) in_progress++;
+                    else to_do++;
+                }
+            } catch (err) {
+                console.warn('[Jira Stats] Live search failed, using DB:', err.message);
+            }
+        }
+
+        if (total === 0) {
+            const issues = await Issue.find({}).lean();
+            total = issues.length;
+            for (const i of issues) {
+                const statusLower = (i.status || '').toLowerCase();
+                if (['done', 'closed', 'resolved'].includes(statusLower)) completed++;
+                else if (['in progress', 'in review', 'testing'].includes(statusLower)) in_progress++;
+                else to_do++;
+            }
+        }
+
+        res.json({
+            success: true,
+            stats: {
+                total,
+                completed,
+                in_progress,
+                to_do,
+                completion_rate: total > 0 ? Math.round((completed / total) * 100) : 0,
+            }
+        });
+    } catch (error) {
+        console.error('[Jira Stats] Error:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * GET /api/jira/combined
+ * Return combined Jira stats and recent tickets
+ */
+router.get('/combined', async (req, res) => {
+    try {
+        const config = getJiraConfig();
+        const users = await getProjectAssignableUsers(config.projectKey);
+        const searchRes = await searchIssues(`project = ${config.projectKey} ORDER BY updated DESC`, undefined, 15);
+        const issues = searchRes.issues || [];
+
+        res.json({
+            success: true,
+            totalTickets: issues.length,
+            usersCount: users.length,
+            tickets: issues.map(i => ({
+                key: i.key,
+                summary: i.fields?.summary,
+                status: i.fields?.status?.name,
+                assignee: i.fields?.assignee?.displayName,
+                updated: i.fields?.updated,
+            }))
+        });
+    } catch (error) {
+        console.error('[Jira Combined] Error:', error);
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -315,12 +668,15 @@ router.get('/recent-activity', async (req, res) => {
 router.get('/sync-status', async (req, res) => {
     try {
         const total = await Task.countDocuments({});
-        const synced = await Task.countDocuments({ synced_to_jira: true });
-        const pending = await Task.countDocuments({ 
-            status: 'pending',
+        const synced = await Task.countDocuments({
+            synced_to_jira: true,
+            jira_issue_key: { $regex: /^[A-Z][A-Z0-9]+-\d+$/ }
+        });
+        const pending = await Task.countDocuments({
             $or: [
                 { synced_to_jira: false },
-                { synced_to_jira: { $exists: false } }
+                { synced_to_jira: { $exists: false } },
+                { jira_issue_key: /^PROJ-/i },
             ]
         });
 
@@ -335,10 +691,7 @@ router.get('/sync-status', async (req, res) => {
         });
     } catch (error) {
         console.error('Error getting sync status:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 

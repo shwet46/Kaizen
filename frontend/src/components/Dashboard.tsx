@@ -404,13 +404,27 @@ export function Dashboard({ onNavigate, githubConnected, onConnectGitHub }: Dash
   const handleSyncData = async () => {
     setSyncingData(true)
     try {
-      const response = await fetch(`${API}/jira/recent-activity?limit=10`)
-      if (response.ok) {
-        const data = await response.json()
-        const items = data.recent || []
+      // Trigger live two-way sync with Jira first
+      const syncResponse = await fetch(`${API}/jira/sync`, { method: 'POST' }).catch(() => null)
+      let items: any[] = []
+      if (syncResponse && syncResponse.ok) {
+        const syncData = await syncResponse.json()
+        items = syncData.recent || []
+      }
+
+      // If sync didn't return recent items, query recent-activity with sync=true
+      if (items.length === 0) {
+        const response = await fetch(`${API}/jira/recent-activity?limit=10&sync=true`)
+        if (response.ok) {
+          const data = await response.json()
+          items = data.recent || []
+        }
+      }
+
+      if (items.length > 0) {
         items.forEach((t: any) => previousTicketKeysRef.current.add(t.key))
         setJiraActivities(items)
-        setSyncSuccessMsg(`Live sync complete: ${items.length} Jira tickets active.`)
+        setSyncSuccessMsg(`Live sync complete: ${items.length} Jira tickets synchronized with dashboard.`)
       } else {
         setSyncSuccessMsg("Synchronized latest Jira telemetry.")
       }

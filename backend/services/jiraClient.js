@@ -1,7 +1,9 @@
 const axios = require('axios');
 const { withRetry } = require('../utils/retry');
 
-const JIRA_DOMAIN = process.env.JIRA_DOMAIN || (process.env.JIRA_BASE_URL ? process.env.JIRA_BASE_URL.replace('https://', '').replace(/\/$/, '') : '');
+const JIRA_DOMAIN = (process.env.JIRA_DOMAIN || process.env.JIRA_BASE_URL || '')
+    .replace(/^https?:\/\//, '')
+    .replace(/\/$/, '');
 const JIRA_EMAIL = process.env.JIRA_EMAIL;
 const JIRA_API_TOKEN = process.env.JIRA_API_TOKEN;
 
@@ -98,7 +100,25 @@ async function createSprint(boardId, name, startDate, endDate) {
     ).then((r) => r.data);
 }
 
-async function createIssue(projectKey, summary, description, issueType, assigneeAccountId) {
+async function fetchIssue(issueKeyOrId) {
+    const res = await axios.get(`${baseURL}/issue/${issueKeyOrId}`, { auth });
+    return res.data;
+}
+
+async function getAssignableUsers(projectKey) {
+    try {
+        const res = await axios.get(`${baseURL}/user/assignable/search`, {
+            auth,
+            params: { project: projectKey },
+        });
+        return res.data || [];
+    } catch (err) {
+        console.error(`Error fetching assignable users for ${projectKey}:`, err.message);
+        return [];
+    }
+}
+
+async function createIssue(projectKey, summary, description, issueType, assigneeAccountId, priority) {
     const body = {
         fields: {
             project: { key: projectKey },
@@ -119,10 +139,134 @@ async function createIssue(projectKey, summary, description, issueType, assignee
         },
     };
     if (assigneeAccountId) body.fields.assignee = { accountId: assigneeAccountId };
+    if (priority) {
+        const normPriority = priority.charAt(0).toUpperCase() + priority.slice(1).toLowerCase();
+        body.fields.priority = { name: normPriority };
+    }
     return withRetry(
         () => axios.post(`${baseURL}/issue`, body, { auth }),
         { maxAttempts: 3, baseMs: 1000 }
     ).then((r) => r.data);
+}
+
+async function updateIssue(issueKeyOrId, updateData = {}) {
+    const fields = {};
+    if (updateData.summary !== undefined) {
+        fields.summary = updateData.summary;
+    }
+    if (updateData.description !== undefined) {
+        fields.description = typeof updateData.description === 'string'
+            ? {
+                  type: 'doc',
+                  version: 1,
+                  content: [
+                      {
+                          type: 'paragraph',
+                          content: [{ type: 'text', text: updateData.description }],
+                      },
+                  ],
+              }
+            : updateData.description;
+    }
+    if (updateData.priority !== undefined) {
+        const normPriority = updateData.priority.charAt(0).toUpperCase() + updateData.priority.slice(1).toLowerCase();
+        fields.priority = { name: normPriority };
+    }
+
+    if (Object.keys(fields).length > 0) {
+        await withRetry(
+            () => axios.put(`${baseURL}/issue/${issueKeyOrId}`, { fields }, { auth }),
+            { maxAttempts: 3, baseMs: 1000 }
+        );
+    }
+
+    if (updateData.assigneeAccountId !== undefined) {
+        await assignIssue(issueKeyOrId, updateData.assigneeAccountId);
+    }
+
+    if (updateData.status) {
+        await transitionIssue(issueKeyOrId, updateData.status);
+    }
+
+    return fetchIssue(issueKeyOrId);
+}
+
+async function assignIssue(issueKeyOrId, accountId) {
+    return withRetry(
+        () =>
+            axios.put(
+                `${baseURL}/issue/${issueKeyOrId}/assignee`,
+                { accountId: accountId || null },
+                { auth }
+            ),
+        { maxAttempts: 3, baseMs: 1000 }
+    ).then((r) => r.data);
+}
+
+async function getTransitions(issueKeyOrId) {
+    const res = await axios.get(`${baseURL}/issue/${issueKeyOrId}/transitions`, { auth });
+    return res.data.transitions || [];
+}
+
+async function transitionIssue(issueKeyOrId, targetStatus) {
+    if (!targetStatus) return null;
+    try {
+        const transitions = await getTransitions(issueKeyOrId);
+        const lower = targetStatus.toLowerCase().trim();
+
+        // Status mapping to common Jira workflow names
+        const statusAliases = {
+            'todo': 'To Do',
+            'to do': 'To Do',
+            'pending': 'To Do',
+            'allocated': 'In Progress',
+            'in progress': 'In Progress',
+            'in_progress': 'In Progress',
+            'in review': 'In Review',
+            'in_review': 'In Review',
+            'done': 'Done',
+            'completed': 'Done',
+            'closed': 'Done',
+        };
+
+        const targetCanonical = statusAliases[lower] || targetStatus;
+
+        let match = transitions.find(
+            (t) =>
+                t.name.toLowerCase() === lower ||
+                t.to?.name?.toLowerCase() === lower ||
+                t.name.toLowerCase() === targetCanonical.toLowerCase() ||
+                t.to?.name?.toLowerCase() === targetCanonical.toLowerCase()
+        );
+
+        if (!match && transitions.length > 0) {
+            // Fuzzy match
+            match = transitions.find(
+                (t) =>
+                    t.name.toLowerCase().includes(lower) ||
+                    t.to?.name?.toLowerCase().includes(lower)
+            );
+        }
+
+        if (match) {
+            await withRetry(
+                () =>
+                    axios.post(
+                        `${baseURL}/issue/${issueKeyOrId}/transitions`,
+                        { transition: { id: match.id } },
+                        { auth }
+                    ),
+                { maxAttempts: 3, baseMs: 1000 }
+            );
+            return match;
+        } else {
+            console.warn(`No matching transition found for status "${targetStatus}" on ${issueKeyOrId}. Available:`, transitions.map((t) => t.name));
+            return null;
+        }
+    } catch (err) {
+        console.error(`Failed to transition issue ${issueKeyOrId} to ${targetStatus}:`, err.message);
+        return null;
+    }
 }
 
 async function moveIssuesToSprint(sprintId, issueKeys) {
@@ -152,11 +296,17 @@ async function searchUsers(query) {
 
 module.exports = {
     searchIssues,
+    fetchIssue,
     fetchSprints,
     fetchProjects,
     fetchBoards,
     createSprint,
     createIssue,
+    updateIssue,
+    assignIssue,
+    getTransitions,
+    transitionIssue,
+    getAssignableUsers,
     moveIssuesToSprint,
     getMyself,
     searchUsers,

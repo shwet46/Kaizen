@@ -46,10 +46,10 @@ async function test() {
         }, { auth });
         console.log('Result 5 count:', res5.data.issues.length);
 
-        console.log('Issues found in search:', searchRes.data.issues.length);
-        if (searchRes.data.issues.length > 0) {
+        console.log('Issues found in search:', res5.data.issues.length);
+        if (res5.data.issues.length > 0) {
             console.log('Latest Issues:');
-            searchRes.data.issues.forEach(i =>
+            res5.data.issues.forEach(i =>
                 console.log(` - ${i.key}: ${i.fields.summary} (Created: ${i.fields.created})`)
             );
         } else {

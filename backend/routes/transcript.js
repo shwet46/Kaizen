@@ -6,12 +6,11 @@ const axios = require('axios');
 const { processTranscript, applyEmployeeUpdates } = require('../services/transcriptAnalyzer');
 const Task = require('../models/Task');
 
-// ============= TEAM MEMBERS (same as jira.js) =============
+// ============= TEAM MEMBERS =============
 const TEAM = [
-    { name: 'Shweta', accountId: '712020:f4133ad3-9b22-491e-8260-37d3ce9dcf04', role: 'AWS Solutions Architect' },
-    { name: 'Maitri', accountId: '712020:88eb9ecb-d9f0-40ee-a5d0-9cbe35c6ac8f', role: 'AWS Backend Developer' },
-    { name: 'Ojasvi', accountId: '712020:27f806c7-3623-4153-bb5b-0f60bb121dec', role: 'AWS DevOps Engineer' },
-    { name: 'Riya', accountId: '712020:a0876b3e-cc7b-403e-8aac-a8929a1c080e', role: 'AWS Cloud Engineer' }
+    { name: 'Shweta', accountId: '712020:f174ef57-a2e9-49cb-865b-8b296a26dd7d', role: 'AWS Solutions Architect' },
+    { name: 'Maitri', accountId: '712020:efd104ea-74b5-4a12-864f-b7622269a488', role: 'AWS Backend Developer' },
+    { name: 'Ojasvi', accountId: '712020:7306c4c4-d139-4c98-a4e7-2e1f1aad067d', role: 'AWS DevOps Engineer' },
 ];
 
 // Map assignee name to team member
@@ -33,13 +32,16 @@ async function resolveJiraAssignee(member, baseURL, auth) {
     });
     const normalizedName = member.name.toLowerCase();
     const user = response.data.find((candidate) =>
-      candidate.active && candidate.displayName?.toLowerCase().startsWith(normalizedName)
+      candidate.active && (
+        candidate.displayName?.toLowerCase().startsWith(normalizedName) ||
+        candidate.displayName?.toLowerCase().includes(normalizedName)
+      )
     );
 
-    return user ? { ...member, accountId: user.accountId } : null;
+    return user ? { ...member, accountId: user.accountId } : (member.accountId ? member : null);
   } catch (error) {
     console.warn(`Unable to resolve Jira user ${member.name}:`, error.message);
-    return null;
+    return member.accountId ? member : null;
   }
 }
 

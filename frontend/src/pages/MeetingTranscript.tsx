@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mic, MicOff, UploadCloud, FileAudio, Check, Square, RotateCcw } from "lucide-react";
 import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { transcribeAudioBlob } from "@/lib/voice-service";
+import { notifyJiraTicketAllocated } from "@/components/JiraTicketNotification";
 
 const API = import.meta.env.VITE_API_URL || (
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
@@ -237,6 +238,16 @@ Riya (AWS Cloud Engineer):
       }
 
       setSyncResults(data.results);
+      (data.results || []).forEach((t: any) => {
+        if (t.jira_key && t.jira_key.toUpperCase().startsWith('KAN-')) {
+          notifyJiraTicketAllocated({
+            key: t.jira_key,
+            summary: t.title || 'Jira ticket created from transcript',
+            assignee: t.assignee || 'Assigned Engineer',
+            status: 'To Do',
+          });
+        }
+      });
     } catch (err) {
       setError((err as Error).message);
     } finally {

@@ -18,6 +18,10 @@ export interface JiraTicketNotificationItem {
 
 export function notifyJiraTicketAllocated(ticket: JiraTicketNotificationItem) {
   if (typeof window !== 'undefined') {
+    // Only show real Jira ticket popups (KAN-xxx), ignore PROJ- placeholders
+    if (!ticket || !ticket.key || !ticket.key.toUpperCase().startsWith('KAN-')) {
+      return;
+    }
     window.dispatchEvent(new CustomEvent('jira-ticket-allocated', { detail: ticket }));
   }
 }
@@ -43,6 +47,9 @@ export const JiraTicketNotification: React.FC<JiraTicketNotificationProps> = ({ 
       const customEvent = event as CustomEvent<JiraTicketNotificationItem>;
       const ticket = customEvent.detail;
       if (!ticket || !ticket.key) return;
+
+      // Strictly allow only KAN ticket popups
+      if (!ticket.key.toUpperCase().startsWith('KAN-')) return;
 
       const normalized: JiraTicketNotificationItem = {
         ...ticket,

@@ -159,17 +159,14 @@ function generateJiraTickets(
 // Save tasks to database
 async function saveTasksToDatabase(allocationData: AllocationData): Promise<void> {
   try {
-    const tasksWithJira = allocationData.tasks.map((task, idx) => {
+    const tasksWithJira = allocationData.tasks.map((task) => {
       const assigneeId = task.assigned_employee_ids[0];
       const employee = allocationData.employees.find((e) => e.id === assigneeId);
-      const ticketKey = `PROJ-${1001 + idx}`;
       return {
         ...task,
-        key: ticketKey,
-        jira_issue_key: ticketKey,
         jira_assignee: employee?.name || 'Unassigned',
         assignee: employee?.name || 'Unassigned',
-        synced_to_jira: true,
+        synced_to_jira: false,
       };
     });
 
@@ -517,15 +514,7 @@ export default function AllocationSimulation({
 
     for (let i = 0; i < tickets.length; i++) {
       setCurrentJiraIndex(i);
-      setStatusMessage(`Creating ${tickets[i].key}: ${tickets[i].summary}...`);
-      notifyJiraTicketAllocated({
-        key: tickets[i].key,
-        summary: tickets[i].summary,
-        assignee: tickets[i].assignee,
-        assigneeRole: tickets[i].assigneeRole,
-        priority: tickets[i].priority,
-        status: "Allocated",
-      });
+      setStatusMessage(`Preparing ${tickets[i].key}: ${tickets[i].summary}...`);
       await new Promise((r) => setTimeout(r, 400));
     }
 
@@ -559,23 +548,49 @@ export default function AllocationSimulation({
     if (result.success) {
       setJiraSyncComplete(true);
       setJiraSyncResults(result.results);
-      if (result.results?.created > 0) {
+      const totalCount = (result.results?.created || 0) + (result.results?.updated || 0);
+      const tickets = result.results?.tickets || [];
+      const validTickets = tickets.filter((ticket: { jira_key?: string }) => ticket.jira_key);
+
+      if (totalCount > 0) {
         setJiraNotice({
-          count: result.results.created,
-          keys: (result.results.tickets || [])
-            .filter((ticket: { jira_key?: string }) => ticket.jira_key)
-            .map((ticket: { jira_key: string }) => ticket.jira_key),
+          count: totalCount,
+          keys: validTickets.map((ticket: { jira_key: string }) => ticket.jira_key),
         });
-        (result.results.tickets || []).forEach((t: any) => {
+
+        // Update local jiraTickets state with the genuine keys from Jira
+        const ticketKeyMap = new Map<string, any>(
+          tickets
+            .filter((t: any) => t.task_id && t.jira_key)
+            .map((t: any) => [t.task_id, t])
+        );
+
+        setJiraTickets((prev) =>
+          prev.map((jt, idx) => {
+            const taskId = allocationData?.tasks[idx]?.id;
+            const updated = taskId ? ticketKeyMap.get(taskId) : null;
+            if (updated) {
+              return {
+                ...jt,
+                key: updated.jira_key,
+                assignee: updated.assignee || jt.assignee,
+                status: (updated.status === 'Done' ? 'done' : updated.status === 'In Progress' ? 'in-progress' : 'todo') as any,
+              };
+            }
+            return jt;
+          })
+        );
+
+        validTickets.forEach((t: any) => {
           notifyJiraTicketAllocated({
-            key: t.jira_key || 'KAN-SYNC',
+            key: t.jira_key,
             summary: t.title || 'Jira ticket synchronized',
             assignee: t.assignee || 'Assigned Engineer',
-            status: 'Synced to Jira',
+            status: t.status || 'Synced to Jira',
           });
         });
       }
-      setStatusMessage(`✓ Successfully synced ${result.results?.created || 0} tasks to Jira!`);
+      setStatusMessage(`✓ Successfully synced ${totalCount} task(s) to Jira dashboard!`);
     } else {
       setStatusMessage(`✗ Failed to sync to Jira: ${result.error}`);
     }
