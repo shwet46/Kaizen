@@ -387,7 +387,7 @@ export function Dashboard({ onNavigate, githubConnected, onConnectGitHub }: Dash
     }
 
     fetchRecentActivity()
-    const interval = setInterval(fetchRecentActivity, 3000)
+    const interval = setInterval(fetchRecentActivity, 15000)
     return () => {
       isMounted = false
       clearInterval(interval)
