@@ -52,48 +52,43 @@ router.get('/overview', async (req, res) => {
         const pendingTasks = mockPending + jiraPending;
 
         if (totalTasks === 0) {
+            const demoBudget = 12000;
+            const demoSpent = 7200;
+            const demoMarketValue = 13200;
+
             return res.json({
                 summary: {
-                    total_budgeted_cost: 348000,
-                    actual_spent_cost: 214200,
-                    remaining_budget: 133800,
-                    market_rate_cost: 425630,
-                    projected_savings: 211430,
-                    roi_percentage: 98.7,
-                    avg_hourly_rate: 78,
-                    currency: 'USD',
-                    capex_eligible_amount: 146510,
-                    opex_maintenance_amount: 67690,
-                    capex_ratio_percentage: 68.4,
-                    burn_rate_weekly: 24800,
-                    cost_per_story_point: 462,
-                    rnd_tax_credit_estimate: 29400
+                    total_budgeted_cost: demoBudget,
+                    actual_spent_cost: demoSpent,
+                    remaining_budget: demoBudget - demoSpent,
+                    market_rate_cost: demoMarketValue,
+                    projected_savings: demoMarketValue - demoBudget,
+                    roi_percentage: Math.round(((demoMarketValue - demoSpent) / demoSpent) * 1000) / 10,
+                    avg_hourly_rate: 90,
+                    currency: 'USD'
                 },
                 tasks: {
-                    total: 184,
-                    completed: 118,
-                    in_progress: 42,
-                    pending: 24,
-                    completion_rate: 64
+                    total: 6,
+                    completed: 4,
+                    in_progress: 1,
+                    pending: 1,
+                    completion_rate: 67
                 },
                 hours: {
-                    total_estimated: 4460,
-                    completed: 2746,
-                    remaining: 1714
+                    total_estimated: 133,
+                    completed: 80,
+                    remaining: 53
                 },
                 data_sources: {
-                    mock_tasks: 126,
-                    jira_tickets: 58,
-                    jira_users: 14
+                    mock_tasks: 0,
+                    jira_tickets: 0,
+                    jira_users: jiraUsers.length,
+                    demo: true
                 },
-                allocation_history: [
-                    { _id: 'alloc_1', sprint_name: 'Sprint 24 - Predictive Vector Indexing', created_at: new Date(Date.now() - 3 * 86400000).toISOString(), issues_created: 44 },
-                    { _id: 'alloc_2', sprint_name: 'Sprint 23 - Streaming Allocation & Graph Sync', created_at: new Date(Date.now() - 17 * 86400000).toISOString(), issues_created: 48 },
-                    { _id: 'alloc_3', sprint_name: 'Sprint 22 - OAuth2 & Security Hardening', created_at: new Date(Date.now() - 31 * 86400000).toISOString(), issues_created: 42 }
-                ]
+                allocation_history: []
             });
         }
-        
+
         // Calculate hours (estimate JIRA tickets at 8hrs each)
         const mockEstimatedHours = tasks.reduce((sum, t) => sum + (t.estimated_hours || 0), 0);
         const jiraEstimatedHours = jiraTickets.length * 8; // Default 8hrs per JIRA ticket
@@ -112,11 +107,14 @@ router.get('/overview', async (req, res) => {
         const issues = await Issue.find({ 'cost.estimated_cost': { $exists: true } }).lean();
         const totalTrackedCost = issues.reduce((sum, i) => sum + (i.cost?.actual_cost || i.cost?.estimated_cost || 0), 0);
 
-        // Calculate ROI (savings vs market rate $150/hr)
+        // Calculate realized ROI from completed work and actual spend.
         const marketRate = 150;
         const marketCost = totalEstimatedHours * marketRate;
         const savings = marketCost - totalBudgetedCost;
-        const roi = totalBudgetedCost > 0 ? (savings / totalBudgetedCost * 100) : 0;
+        const realizedValue = completedHours * marketRate;
+        const roi = actualSpentCost > 0
+            ? ((realizedValue - actualSpentCost) / actualSpentCost * 100)
+            : 0;
 
         // Allocation runs for historical data
         const allocationRuns = await AllocationRun.find({}).sort({ created_at: -1 }).limit(30).lean();

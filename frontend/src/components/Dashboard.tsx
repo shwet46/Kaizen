@@ -223,15 +223,15 @@ export function Dashboard({ onNavigate, githubConnected, onConnectGitHub }: Dash
 
   // Real-time stats from MongoDB via API
   const [stats, setStats] = useState<DashboardStats>({
-    activeUsers: 248,
-    tasksCompleted: 42,
-    totalTasks: 58,
-    inProgress: 14,
-    completionRate: 72,
-    velocity: 380,
-    roi: 34,
-    savings: 48500,
-    budgetUtilization: 68
+    activeUsers: 0,
+    tasksCompleted: 0,
+    totalTasks: 0,
+    inProgress: 0,
+    completionRate: 0,
+    velocity: 0,
+    roi: 0,
+    savings: 0,
+    budgetUtilization: 0
   })
 
   // Historical data for sparklines
@@ -271,18 +271,25 @@ export function Dashboard({ onNavigate, githubConnected, onConnectGitHub }: Dash
     ])
       .then(([finance, dailyProgress, employees]) => {
         if (finance && finance.summary) {
+          const hasSpendData = finance.summary.total_budgeted_cost > 0 && finance.summary.actual_spent_cost > 0
+          const demoBudget = 12000
+          const demoSpent = 7200
+          const demoMarketValue = 13200
+
           setStats({
             activeUsers: Array.isArray(employees) && employees.length > 0 ? employees.length : 248,
-            tasksCompleted: finance.tasks?.completed || 42,
-            totalTasks: finance.tasks?.total || 58,
-            inProgress: finance.tasks?.in_progress || 14,
-            completionRate: finance.tasks?.completion_rate || 72,
-            velocity: finance.hours?.completed || 380,
-            roi: finance.summary?.roi_percentage || 34,
-            savings: finance.summary?.projected_savings || 48500,
-            budgetUtilization: finance.summary?.total_budgeted_cost > 0 
+            tasksCompleted: hasSpendData ? (finance.tasks?.completed ?? 0) : 4,
+            totalTasks: hasSpendData ? (finance.tasks?.total ?? 0) : 6,
+            inProgress: hasSpendData ? (finance.tasks?.in_progress ?? 0) : 1,
+            completionRate: hasSpendData ? (finance.tasks?.completion_rate ?? 0) : 67,
+            velocity: hasSpendData ? (finance.hours?.completed ?? 0) : 80,
+            roi: hasSpendData
+              ? (finance.summary?.roi_percentage ?? 0)
+              : Math.round(((demoMarketValue - demoSpent) / demoSpent) * 1000) / 10,
+            savings: hasSpendData ? (finance.summary?.projected_savings ?? 0) : demoMarketValue - demoBudget,
+            budgetUtilization: hasSpendData
               ? Math.round((finance.summary?.actual_spent_cost / finance.summary?.total_budgeted_cost) * 100)
-              : 68
+              : Math.round((demoSpent / demoBudget) * 100)
           })
         }
         
