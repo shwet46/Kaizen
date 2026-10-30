@@ -196,6 +196,54 @@ const FALLBACK_USERS: User[] = [
   },
 ]
 
+function getSeniorityLevel(seniority: unknown): number {
+  if (typeof seniority === "number") return seniority
+  if (typeof seniority === "string") {
+    const level = Number.parseInt(seniority, 10)
+    if (!Number.isNaN(level)) return level
+    return { junior: 1, mid: 2, senior: 3, lead: 4, principal: 5 }[seniority.toLowerCase()] || 2
+  }
+  return 2
+}
+
+function getDepartment(role: string): string {
+  if (role.includes("Marketing") || role.includes("Content") || role.includes("Writer") || role.includes("Analytics")) {
+    return "Product"
+  }
+  if (role.includes("Product")) return "Product"
+  return "Engineering"
+}
+
+function normalizeSmartAllocateUsers(data: unknown): User[] {
+  if (!Array.isArray(data)) return []
+
+  return data.reduce<User[]>((members, employee) => {
+    if (!employee || typeof employee !== "object") return members
+    const item = employee as {
+      id?: string
+      name?: string
+      email?: string
+      role?: string
+      tech_stack?: string[]
+      seniority?: string | number
+    }
+    if (!item.id || !item.name || !item.role) return members
+
+    members.push({
+      user_id: item.id,
+      display_name: item.name,
+      email: item.email,
+      source: "GitHub",
+      role: item.role,
+      department: getDepartment(item.role),
+      seniority_level: getSeniorityLevel(item.seniority),
+      skills: item.tech_stack || [],
+      employment_type: "Full-time",
+    })
+    return members
+  }, [])
+}
+
 const SENIORITY_MAP: Record<number, { label: string; badgeClass: string; desc: string }> = {
   1: { label: "L1 - Junior", badgeClass: "bg-slate-100 text-slate-700 border-slate-300", desc: "Foundational engineer / contributor" },
   2: { label: "L2 - Mid", badgeClass: "bg-blue-50 text-blue-700 border-blue-200", desc: "Autonomous contributor on core modules" },
@@ -269,9 +317,9 @@ export function RoleManagement() {
   const fetchData = async () => {
     try {
       setLoading(true)
-      const [configRes, usersRes] = await Promise.all([
+      const [configRes, smartAllocateRes] = await Promise.all([
         fetch(`${API}/roles/config`).catch(() => null),
-        fetch(`${API}/roles/users`).catch(() => null),
+        fetch(`${API}/smart-allocate/employees`).catch(() => null),
       ])
 
       let configData: RoleConfig | null = null
@@ -287,13 +335,12 @@ export function RoleManagement() {
         })
       }
 
-      if (usersRes && usersRes.ok) {
-        const usersData = await usersRes.json()
-        if (usersData.users && usersData.users.length > 0) {
-          setUsers(usersData.users)
-        } else {
-          setUsers(FALLBACK_USERS)
-        }
+      const smartAllocateUsers = smartAllocateRes && smartAllocateRes.ok
+        ? normalizeSmartAllocateUsers(await smartAllocateRes.json())
+        : []
+
+      if (smartAllocateUsers.length > 0) {
+        setUsers(smartAllocateUsers)
       } else {
         setUsers(FALLBACK_USERS)
       }
@@ -315,20 +362,20 @@ export function RoleManagement() {
 
   const fetchUsers = async () => {
     try {
-      const params = new URLSearchParams()
-      if (filterRole) params.set("role", filterRole)
-      if (filterDepartment) params.set("department", filterDepartment)
+      const smartAllocateRes = await fetch(`${API}/smart-allocate/employees`).catch(() => null)
+      const smartAllocateUsers = smartAllocateRes && smartAllocateRes.ok
+        ? normalizeSmartAllocateUsers(await smartAllocateRes.json())
+        : []
 
-      const res = await fetch(`${API}/roles/users?${params.toString()}`)
-      if (res.ok) {
-        const data = await res.json()
-        if (data.users && data.users.length > 0) {
-          setUsers(data.users)
-        } else if (!filterRole && !filterDepartment) {
-          setUsers(FALLBACK_USERS)
-        } else {
-          setUsers([])
-        }
+      if (smartAllocateUsers.length > 0) {
+        setUsers(smartAllocateUsers.filter((user) =>
+          (!filterRole || user.role === filterRole) &&
+          (!filterDepartment || user.department === filterDepartment)
+        ))
+      } else if (!filterRole && !filterDepartment) {
+        setUsers(FALLBACK_USERS)
+      } else {
+        setUsers([])
       }
     } catch (err) {
       console.warn("Using fallback/cached users due to connection:", err)
