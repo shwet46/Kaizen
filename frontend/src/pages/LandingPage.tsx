@@ -584,38 +584,68 @@ export default function LandingPage() {
               </div>
             </AnimateOnScroll>
 
-            {/* Google technology badge */}
+            {/* Google technology icons */}
             <AnimateOnScroll delay={0.7}>
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 12,
+                  gap: 14,
+                  width: "fit-content",
+                  maxWidth: "100%",
+                  marginInline: "auto",
                   marginTop: "3rem",
-                  padding: "10px 18px",
+                  padding: "10px 16px",
                   borderRadius: 30,
                   background: "rgba(255, 255, 255, 0.75)",
                   backdropFilter: "blur(12px)",
                   border: "1px solid rgba(26,115,232,0.25)",
-                  fontSize: "0.8rem",
-                  color: "var(--text-secondary)",
-                  flexWrap: "wrap",
                 }}
               >
-                <SiGooglecloud style={{ color: "#1A73E8", fontSize: "1.25rem", flexShrink: 0 }} />
-                <strong style={{ color: "var(--text-primary)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-                  Built with Google technologies
-                </strong>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "'JetBrains Mono', monospace" }}>
-                  <span style={{ color: "#4285F4" }}>Google Cloud</span>
-                  <span style={{ color: "rgba(26,26,26,0.35)" }}>·</span>
-                  <SiGooglegemini style={{ color: "#7E57C2" }} />
-                  <span style={{ color: "#7E57C2" }}>Gemini</span>
-                  <span style={{ color: "rgba(26,26,26,0.35)" }}>·</span>
-                  <span style={{ color: "#34A853" }}>Agent Platform</span>
-                  <span style={{ color: "rgba(26,26,26,0.35)" }}>·</span>
-                  <span style={{ color: "#EA4335" }}>Cloud Run</span>
+                <span style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-secondary)" }}>
+                  Built with love using Google Cloud & Gemini
+                </span>
+                <span
+                  aria-label="Google Cloud and Gemini"
+                  style={{ position: "relative", width: 68, height: 42, flexShrink: 0, marginLeft: "auto" }}
+                >
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      top: 0,
+                      zIndex: 2,
+                      display: "grid",
+                      placeItems: "center",
+                      width: 42,
+                      height: 42,
+                      border: "2px solid #ffffff",
+                      borderRadius: "50%",
+                      background: "#ffffff",
+                      boxShadow: "0 1px 4px rgba(15, 23, 42, 0.2)",
+                    }}
+                  >
+                    <img src="/gcp.png" alt="Google Cloud" style={{ width: 27, height: 27, objectFit: "contain" }} />
+                  </span>
+                  <span
+                    style={{
+                      position: "absolute",
+                      right: 0,
+                      top: 0,
+                      zIndex: 1,
+                      display: "grid",
+                      placeItems: "center",
+                      width: 42,
+                      height: 42,
+                      border: "2px solid #ffffff",
+                      borderRadius: "50%",
+                      background: "#ffffff",
+                      boxShadow: "0 1px 4px rgba(15, 23, 42, 0.2)",
+                    }}
+                  >
+                    <img src="/gemini.png" alt="Gemini" style={{ width: 27, height: 27, objectFit: "contain" }} />
+                  </span>
                 </span>
               </div>
             </AnimateOnScroll>

@@ -40,11 +40,6 @@ import {
   LiaFileInvoiceDollarSolid as FaInvoice,
   LiaLinkedin as FaLinkedin,
 } from "react-icons/lia";
-import {
-  SiGooglecloud,
-  SiGooglegemini,
-} from "react-icons/si";
-
 // Reusable viewport reveal animation matching transition physics
 function MotionReveal({
   children,
@@ -353,36 +348,67 @@ export default function PitchPage() {
                   </p>
                 </MotionReveal>
 
-                {/* Google technology badge */}
+                {/* Google technology icons */}
                 <MotionReveal delay={0.35}>
                   <div
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: "0.8rem",
+                      gap: "0.9rem",
+                      width: "fit-content",
+                      maxWidth: "100%",
+                      marginInline: "auto",
                       padding: "0.7rem 1rem",
                       backgroundColor: "#ffffff",
                       border: "1.5px solid #1A73E8",
                       boxShadow: "2px 2px 0px rgba(15, 23, 42, 0.15)",
                       color: "var(--pitch-text-secondary)",
                       marginBottom: "2rem",
-                      maxWidth: "100%",
-                      flexWrap: "wrap",
                     }}
                   >
-                    <SiGooglecloud style={{ color: "#1A73E8", fontSize: "1.25rem", flexShrink: 0 }} />
-                    <strong style={{ color: "var(--pitch-text-primary)", fontSize: "0.8rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-                      Built with Google technologies
-                    </strong>
-                    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", fontSize: "0.78rem", fontFamily: "var(--font-mono)" }}>
-                      <span style={{ color: "#4285F4" }}>Google Cloud</span>
-                      <span style={{ color: "rgba(15, 23, 42, 0.35)" }}>·</span>
-                      <SiGooglegemini style={{ color: "#7E57C2" }} />
-                      <span style={{ color: "#7E57C2" }}>Gemini</span>
-                      <span style={{ color: "rgba(15, 23, 42, 0.35)" }}>·</span>
-                      <span style={{ color: "#34A853" }}>Agent Platform</span>
-                      <span style={{ color: "rgba(15, 23, 42, 0.35)" }}>·</span>
-                      <span style={{ color: "#EA4335" }}>Cloud Run</span>
+                    <span style={{ fontSize: "0.8rem", fontWeight: 700 }}>
+                      Built with love using Google Cloud & Gemini
+                    </span>
+                    <span
+                      aria-label="Google Cloud and Gemini"
+                      style={{ position: "relative", width: 68, height: 42, flexShrink: 0, marginLeft: "auto" }}
+                    >
+                      <span
+                        style={{
+                          position: "absolute",
+                          left: 0,
+                          top: 0,
+                          zIndex: 2,
+                          display: "grid",
+                          placeItems: "center",
+                          width: 42,
+                          height: 42,
+                          border: "2px solid #ffffff",
+                          borderRadius: "50%",
+                          background: "#ffffff",
+                          boxShadow: "0 1px 4px rgba(15, 23, 42, 0.2)",
+                        }}
+                      >
+                        <img src="/gcp.png" alt="Google Cloud" style={{ width: 27, height: 27, objectFit: "contain" }} />
+                      </span>
+                      <span
+                        style={{
+                          position: "absolute",
+                          right: 0,
+                          top: 0,
+                          zIndex: 1,
+                          display: "grid",
+                          placeItems: "center",
+                          width: 42,
+                          height: 42,
+                          border: "2px solid #ffffff",
+                          borderRadius: "50%",
+                          background: "#ffffff",
+                          boxShadow: "0 1px 4px rgba(15, 23, 42, 0.2)",
+                        }}
+                      >
+                        <img src="/gemini.png" alt="Gemini" style={{ width: 27, height: 27, objectFit: "contain" }} />
+                      </span>
                     </span>
                   </div>
                 </MotionReveal>
