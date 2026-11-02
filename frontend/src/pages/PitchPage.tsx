@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import "../styles/kaizen-pitch.css";
 import { LenisProvider } from "@/components/LenisProvider";
-import { ScrambleText } from "@/components/FancyComponents";
 import { motion } from "framer-motion";
 import {
   ResponsiveContainer,
@@ -41,6 +40,10 @@ import {
   LiaFileInvoiceDollarSolid as FaInvoice,
   LiaLinkedin as FaLinkedin,
 } from "react-icons/lia";
+import {
+  SiGooglecloud,
+  SiGooglegemini,
+} from "react-icons/si";
 
 // Reusable viewport reveal animation matching transition physics
 function MotionReveal({
@@ -350,37 +353,37 @@ export default function PitchPage() {
                   </p>
                 </MotionReveal>
 
-                {/* Active Telemetry Pill (Squared) */}
+                {/* Google technology badge */}
                 <MotionReveal delay={0.35}>
                   <div
                     style={{
-                      display: "inline-flex",
+                      display: "flex",
                       alignItems: "center",
-                      gap: "0.6rem",
-                      padding: "0.5rem 1rem",
+                      gap: "0.8rem",
+                      padding: "0.7rem 1rem",
                       backgroundColor: "#ffffff",
-                      border: "1.5px solid var(--pitch-text-primary)",
+                      border: "1.5px solid #1A73E8",
                       boxShadow: "2px 2px 0px rgba(15, 23, 42, 0.15)",
-                      fontSize: "0.8rem",
                       color: "var(--pitch-text-secondary)",
                       marginBottom: "2rem",
                       maxWidth: "100%",
                       flexWrap: "wrap",
                     }}
                   >
-                    <span
-                      style={{
-                        width: "8px",
-                        height: "8px",
-                        backgroundColor: "var(--pitch-green)",
-                        boxShadow: "0 0 6px var(--pitch-green)",
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span>Active Telemetry: </span>
-                    <strong style={{ color: "var(--pitch-text-primary)", fontFamily: "var(--font-mono)" }}>
-                      <ScrambleText text="248 Engineers · 34 Repos · 14.6 Deploys/Day" scrambleSpeed={28} />
+                    <SiGooglecloud style={{ color: "#1A73E8", fontSize: "1.25rem", flexShrink: 0 }} />
+                    <strong style={{ color: "var(--pitch-text-primary)", fontSize: "0.8rem", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                      Built with Google technologies
                     </strong>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: "0.45rem", fontSize: "0.78rem", fontFamily: "var(--font-mono)" }}>
+                      <span style={{ color: "#4285F4" }}>Google Cloud</span>
+                      <span style={{ color: "rgba(15, 23, 42, 0.35)" }}>·</span>
+                      <SiGooglegemini style={{ color: "#7E57C2" }} />
+                      <span style={{ color: "#7E57C2" }}>Gemini</span>
+                      <span style={{ color: "rgba(15, 23, 42, 0.35)" }}>·</span>
+                      <span style={{ color: "#34A853" }}>Agent Platform</span>
+                      <span style={{ color: "rgba(15, 23, 42, 0.35)" }}>·</span>
+                      <span style={{ color: "#EA4335" }}>Cloud Run</span>
+                    </span>
                   </div>
                 </MotionReveal>
 
@@ -1885,7 +1888,7 @@ export default function PitchPage() {
                       lineHeight: 1.6,
                     }}
                   >
-                    Neo4j knowledge graphs link code churn and PR dependencies directly to financial CapEx ledgers, powered by Gemini LLM reasoning on Google Vertex AI with sub-second WebSocket telemetry.
+                    Neo4j knowledge graphs link code churn and PR dependencies directly to financial CapEx ledgers, powered by Gemini LLM reasoning on Google Agent Platform with sub-second WebSocket telemetry.
                   </p>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                     {[
@@ -1894,7 +1897,7 @@ export default function PitchPage() {
                       "Neo4j Graph DB",
                       "MongoDB Atlas",
                       "Gemini 2.0 Flash / Pro",
-                      "Google Vertex AI",
+                      "Google Agent Platform",
                       "WebSockets Telemetry",
                       "Docker & Cloud Run",
                     ].map((tech, i) => (
@@ -2345,7 +2348,7 @@ export default function PitchPage() {
                       Custom <span style={{ fontSize: "0.85rem", color: "var(--pitch-text-secondary)", fontWeight: 400 }}>/ enterprise</span>
                     </div>
                     <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem", fontSize: "0.82rem", color: "var(--pitch-text-secondary)" }}>
-                      <li style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}><FaCheck style={{ color: "var(--pitch-purple)" }} /> Dedicated Vertex AI Instance</li>
+                      <li style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}><FaCheck style={{ color: "var(--pitch-purple)" }} /> Dedicated Agent Platform Instance</li>
                       <li style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}><FaCheck style={{ color: "var(--pitch-purple)" }} /> SAP & Workday ERP Auto-Sync</li>
                       <li style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}><FaCheck style={{ color: "var(--pitch-purple)" }} /> Voice Executive Briefings</li>
                       <li style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}><FaCheck style={{ color: "var(--pitch-purple)" }} /> Bespoke 99.99% Enterprise SLA</li>

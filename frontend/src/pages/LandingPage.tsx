@@ -7,7 +7,6 @@ import { Navbar } from "@/components/Navbar";
 import { BackgroundRippleEffect } from "@/components/ui/background-ripple-effect";
 import {
   GooeyFilter,
-  ScrambleText,
   TextHighlighter,
   TextRotate,
   Letter3DSwap,
@@ -249,9 +248,9 @@ const systemDesignNodes: Node[] = [
     position: { x: 770, y: 320 },
     data: {
       step: "03B · AI REASONING",
-      title: "Gemini on Vertex AI",
+      title: "Gemini on Agent Platform",
       subtitle: "Multimodal Task & Risk Engine",
-      roleBadge: "⚡ Vertex AI Gemini 1.5",
+      roleBadge: "⚡ Agent Platform Gemini 1.5",
       tags: ["Chain-of-Thought", "Task Allocator", "Risk Models"],
       icon: <SiGooglegemini />,
       color: "#7E57C2",
@@ -512,8 +511,8 @@ export default function LandingPage() {
     },
     {
       category: "AI Intelligence",
-      title: "Gemini via Vertex AI",
-      tags: ["Gemini 1.5", "Vertex AI", "CoT Planner"],
+      title: "Gemini via Agent Platform",
+      tags: ["Gemini 1.5", "Agent Platform", "CoT Planner"],
       icon: <SiGooglegemini />,
       color: "#7E57C2",
     },
@@ -527,7 +526,7 @@ export default function LandingPage() {
     {
       category: "Google Cloud Stack",
       title: "Cloud Run & Firebase",
-      tags: ["Google Cloud Run (Backend)", "Firebase App Hosting (Frontend)", "Vertex AI", "GCP Speech"],
+      tags: ["Google Cloud Run (Backend)", "Firebase App Hosting (Frontend)", "Agent Platform", "GCP Speech"],
       icon: <SiGooglecloud />,
       color: "#1A73E8",
       highlight: true,
@@ -585,27 +584,39 @@ export default function LandingPage() {
               </div>
             </AnimateOnScroll>
 
-            {/* Live Telemetry Pill */}
+            {/* Google technology badge */}
             <AnimateOnScroll delay={0.7}>
               <div
                 style={{
-                  display: "inline-flex",
+                  display: "flex",
                   alignItems: "center",
+                  justifyContent: "center",
                   gap: 12,
                   marginTop: "3rem",
-                  padding: "8px 18px",
+                  padding: "10px 18px",
                   borderRadius: 30,
                   background: "rgba(255, 255, 255, 0.75)",
                   backdropFilter: "blur(12px)",
-                  border: "1px solid rgba(26,26,26,0.1)",
+                  border: "1px solid rgba(26,115,232,0.25)",
                   fontSize: "0.8rem",
                   color: "var(--text-secondary)",
+                  flexWrap: "wrap",
                 }}
               >
-                <span>Active Telemetry: </span>
-                <strong style={{ color: "var(--text-primary)" }}>
-                  <ScrambleText text="248 Engineers · 34 Repositories · 14.6 Deploys/Day" scrambleSpeed={28} />
+                <SiGooglecloud style={{ color: "#1A73E8", fontSize: "1.25rem", flexShrink: 0 }} />
+                <strong style={{ color: "var(--text-primary)", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                  Built with Google technologies
                 </strong>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "'JetBrains Mono', monospace" }}>
+                  <span style={{ color: "#4285F4" }}>Google Cloud</span>
+                  <span style={{ color: "rgba(26,26,26,0.35)" }}>·</span>
+                  <SiGooglegemini style={{ color: "#7E57C2" }} />
+                  <span style={{ color: "#7E57C2" }}>Gemini</span>
+                  <span style={{ color: "rgba(26,26,26,0.35)" }}>·</span>
+                  <span style={{ color: "#34A853" }}>Agent Platform</span>
+                  <span style={{ color: "rgba(26,26,26,0.35)" }}>·</span>
+                  <span style={{ color: "#EA4335" }}>Cloud Run</span>
+                </span>
               </div>
             </AnimateOnScroll>
           </div>
@@ -717,7 +728,7 @@ export default function LandingPage() {
                   </TextHighlighter>
                 </h2>
                 <p className="section-subtitle">
-                  Frontend is deployed using <strong>Firebase App Hosting</strong>, backend containerized microservices run on <strong>Google Cloud Run</strong>, with multimodal AI reasoning powered by <strong>Google Gemini on Vertex AI</strong>.
+                  Frontend is deployed using <strong>Firebase App Hosting</strong>, backend containerized microservices run on <strong>Google Cloud Run</strong>, with multimodal AI reasoning powered by <strong>Google Gemini on Agent Platform</strong>.
                 </p>
               </AnimateOnScroll>
             </div>
@@ -772,7 +783,7 @@ export default function LandingPage() {
                       System Topology & Google Cloud Flow
                     </h3>
                     <p className="system-design-desc">
-                      Trace how developer events and standup audio flow through Google Cloud Run microservices and Gemini on Vertex AI, persisted in Neo4j and MongoDB, and rendered via Firebase App Hosting.
+                      Trace how developer events and standup audio flow through Google Cloud Run microservices and Gemini on Agent Platform, persisted in Neo4j and MongoDB, and rendered via Firebase App Hosting.
                     </p>
                   </div>
                   <div className="system-design-header-right">
@@ -787,7 +798,7 @@ export default function LandingPage() {
                       </span>
                       <span className="meta-pill">
                         <SiGooglegemini style={{ fontSize: "0.85rem", color: "#7E57C2" }} />
-                        Vertex AI Gemini
+                        Agent Platform Gemini
                       </span>
                     </div>
                   </div>
